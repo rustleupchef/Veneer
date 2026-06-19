@@ -1,5 +1,5 @@
 # Veneer Project Development Outline
-Veneer is a attempt to make a programming language that can easily use components from other languages; it's an attempt to remove the barriers to code created by the capabilities of certain language. While the project isn't done I have a roadmap for the design I attempt to create.
+Veneer is a attempt to make a programming language that can easily use components from other languages; it's an attempt to remove the barriers to code created by the capabilities and challenges of certain languages. While the project isn't even in a prototype stage I have created a plan for the project.
 
 This comprehensive roadmap details the architecture, compilation pipeline, and implementation strategy for **Veneer**—an easy-to-setup, customizable programming language built on a high-performance C# framework.
 
