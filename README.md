@@ -49,7 +49,7 @@ Instead of a separate text config file, the language uses its own code files to 
 * Written entirely using Veneer syntax, acting as the mandatory root of the application loop.
 * Explicitly registers foreign functions using clear identifier blocks:
 ```c
-tooth fast_calculation(int x) language("rust") {
+tooth<void> fast_calculation(int x) language("rust") {
     // Foreign instructions or library mappings go here
 }
 
