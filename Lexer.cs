@@ -2,6 +2,7 @@ namespace Veneer;
 
 public class Lexer
 {
+    // 1. Keyword Dictionary: For lowercase words found in the source code
     public static readonly Dictionary<string, Tokens.TokenType> Keywords = new()
     {
         { "for",      Tokens.TokenType.For },
