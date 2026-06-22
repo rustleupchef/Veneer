@@ -114,4 +114,101 @@ public class Lexer
         // Remaining characters can be letters, digits, or underscores
         return text.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
+    
+    public static List<Tokens.Token> LexText(string source)
+    {
+        var tokens = new List<Tokens.Token>();
+        int i = 0;
+
+        while (i < source.Length)
+        {
+            char current = source[i];
+
+            // 1. Skip Whitespace
+            if (char.IsWhiteSpace(current))
+            {
+                i++;
+                continue;
+            }
+
+            // 2. Handle String Literals (Everything inside " ")
+            if (current == '"')
+            {
+                int start = i;
+                i++; // Move past opening quote
+                while (i < source.Length && source[i] != '"')
+                {
+                    i++;
+                }
+                i++; // Move past closing quote
+                
+                string lexeme = source.Substring(start, i - start);
+                tokens.Add(new Tokens.Token(Tokens.TokenType.StringLiteral, lexeme));
+                continue;
+            }
+            
+            // 3. Character Literals (Everything inside ' ')
+            if (current == '\'')
+            {
+                int start = i;
+                i++; // Move past opening single quote
+    
+                // Read until the closing single quote or end of file
+                while (i < source.Length && source[i] != '\'') 
+                {
+                    // Handle escape characters like '\'' so it doesn't break early
+                    if (source[i] == '\\' && i + 1 < source.Length) i++; 
+                    i++;
+                }
+                i++; // Move past closing single quote
+    
+                string lexeme = source.Substring(start, i - start);
+                tokens.Add(new Tokens.Token(Tokens.TokenType.CharLiteral, lexeme));
+                continue;
+            }
+
+            // 4. Handle Operators and Punctuation (Checking 2-character symbols first)
+            if (i + 1 < source.Length)
+            {
+                string twoCharOp = source.Substring(i, 2);
+                if (OperatorsAndPunctuation.ContainsKey(twoCharOp))
+                {
+                    tokens.Add(new Tokens.Token(OperatorsAndPunctuation[twoCharOp], twoCharOp));
+                    i += 2;
+                    continue;
+                }
+            }
+
+            if (OperatorsAndPunctuation.ContainsKey(current.ToString()))
+            {
+                tokens.Add(new Tokens.Token(OperatorsAndPunctuation[current.ToString()], current.ToString()));
+                i++;
+                continue;
+            }
+
+            // 5. Handle Words (Keywords & Identifiers) and Numbers
+            if (char.IsLetterOrDigit(current) || current == '_')
+            {
+                int start = i;
+                // Keep reading as long as it's a valid variable/number character
+                while (i < source.Length && (char.IsLetterOrDigit(source[i]) || source[i] == '_' || source[i] == '.'))
+                {
+                    i++;
+                }
+
+                string lexeme = source.Substring(start, i - start);
+                Tokens.TokenType type = ResolveLiteralOrIdentifier(lexeme);
+                tokens.Add(new Tokens.Token(type, lexeme));
+                continue;
+            }
+
+            // 6. Catch-all for unexpected characters
+            tokens.Add(new Tokens.Token(Tokens.TokenType.Invalid, current.ToString()));
+            i++;
+        }
+
+        // Always append EndOfFile so the Parser knows it hit the end safely
+        tokens.Add(new Tokens.Token(Tokens.TokenType.EndOfFile, ""));
+        return tokens;
+    }
 }

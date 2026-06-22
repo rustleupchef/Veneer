@@ -4,6 +4,11 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine(Lexer.ResolveLiteralOrIdentifier(Console.ReadLine()));
+        List<Tokens.Token> tokens = Lexer.LexText(File.ReadAllText(Console.ReadLine()));
+
+        foreach (Tokens.Token token in tokens)
+        {
+            Console.WriteLine(token);
+        }
     }
 }
