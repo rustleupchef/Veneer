@@ -8,7 +8,7 @@ public class Tokens
         EndOfFile, Invalid,
 
         // Identifiers & Literals
-        Identifier, IntLiteral, FloatLiteral, StringLiteral, BoolLiteral,
+        Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral, BoolLiteral,
 
         // Keywords
         For, While, If, Else, Return,
