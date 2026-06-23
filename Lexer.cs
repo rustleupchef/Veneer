@@ -16,6 +16,7 @@ public class Lexer
         { "char",     Tokens.TokenType.Char },
         { "void",     Tokens.TokenType.Void },
         { "string",   Tokens.TokenType.String },
+        { "func",     Tokens.TokenType.Function },
         { "tooth",    Tokens.TokenType.Tooth },
         { "language", Tokens.TokenType.Language }
     };

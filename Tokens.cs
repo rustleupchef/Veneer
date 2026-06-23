@@ -12,7 +12,7 @@ public class Tokens
 
         // Keywords
         For, While, If, Else, Return,
-        Int, Float, Bool, Char, Void, String,
+        Int, Float, Bool, Char, Void, String, Function,
         Tooth, Language,
 
         // Operators
