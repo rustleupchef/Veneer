@@ -12,7 +12,10 @@ public class Tokens
 
         // Keywords
         For, While, If, Else, Return,
-        Int, Float, Bool, Char, Void, String, Function,
+        Int, Float, Bool, Char, Void, String,
+        Function, Class,
+        New, This, Base,
+        Public, Private, Protected, Internal,
         Tooth, Language,
 
         // Operators
@@ -23,7 +26,7 @@ public class Tokens
 
         // Punctuation
         LeftParen, RightParen, LeftBrace, RightBrace, LeftBracket, RightBracket,
-        Comma, SemiColon
+        Comma, SemiColon, Dot, Colon
     }
     
     public record Token(TokenType Type, string Value);

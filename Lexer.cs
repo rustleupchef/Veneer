@@ -18,7 +18,15 @@ public class Lexer
         { "string",   Tokens.TokenType.String },
         { "func",     Tokens.TokenType.Function },
         { "tooth",    Tokens.TokenType.Tooth },
-        { "language", Tokens.TokenType.Language }
+        { "language", Tokens.TokenType.Language },
+        { "class",    Tokens.TokenType.Class },
+        { "new",      Tokens.TokenType.New },
+        { "this",     Tokens.TokenType.This },
+        { "base",     Tokens.TokenType.Base },
+        { "public",    Tokens.TokenType.Public },
+        { "private",    Tokens.TokenType.Private },
+        { "protected",    Tokens.TokenType.Protected },
+        { "internal",    Tokens.TokenType.Internal },
     };
 
     // 2. Operators & Punctuation Dictionary: For literal code symbols
@@ -53,7 +61,9 @@ public class Lexer
         { "[",  Tokens.TokenType.LeftBracket },
         { "]",  Tokens.TokenType.RightBracket },
         { ",",  Tokens.TokenType.Comma },
-        { ";",  Tokens.TokenType.SemiColon }
+        { ";",  Tokens.TokenType.SemiColon },
+        { ".",  Tokens.TokenType.Dot },
+        { ":",  Tokens.TokenType.Colon }
     };
     
     public static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
