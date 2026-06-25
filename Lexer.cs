@@ -19,7 +19,6 @@ public class Lexer
         { "func", Tokens.TokenType.Function },
         { "tooth", Tokens.TokenType.Tooth },
         { "language", Tokens.TokenType.Language },
-        { "chip", Tokens.TokenType.Chip },
         { "class", Tokens.TokenType.Class },
         { "new", Tokens.TokenType.New },
         { "this", Tokens.TokenType.This },

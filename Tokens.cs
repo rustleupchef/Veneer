@@ -16,7 +16,7 @@ public class Tokens
         Function, Class,
         New, This, Base,
         Public, Private, Protected, Internal,
-        Tooth, Language, Chip,
+        Tooth, Language,
 
         // Operators
         Plus, Minus, Star, Slash, Modulo,

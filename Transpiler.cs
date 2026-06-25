@@ -124,7 +124,7 @@ public class Transpiler
         
         var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for tooth name.");
         string toothName = nameTok.Value;
-
+ 
         Consume(Tokens.TokenType.LeftParen, "Expected '(' after tooth identifier.");
         var paramsSb = new StringBuilder();
         while (Peek().Type != Tokens.TokenType.RightParen && Peek().Type != Tokens.TokenType.EndOfFile)
@@ -133,48 +133,32 @@ public class Transpiler
             _index++;
         }
         Consume(Tokens.TokenType.RightParen, "Expected ')' closing tooth parameters.");
-
+ 
         Consume(Tokens.TokenType.Language, "Expected 'language' property constraint.");
         Consume(Tokens.TokenType.LeftParen, "Expected '(' framing target platform string.");
         var langTok = Consume(Tokens.TokenType.StringLiteral, "Expected literal string definition for language target.");
         Consume(Tokens.TokenType.RightParen, "Expected ')' framing target platform string.");
-
+ 
         Consume(Tokens.TokenType.LeftBrace, "Expected open brace '{' for tooth execution scope.");
-        
+ 
         var toothBodySb = new StringBuilder();
-        while (Peek().Type != Tokens.TokenType.RightBrace && Peek().Type != Tokens.TokenType.EndOfFile)
+        toothBodySb.AppendLine($"\t\t// [Tooth Engine Gateway]: Foreign Code Block Extraction Below");
+        toothBodySb.AppendLine($"\t\t// Target Sub-Ecosystem: {langTok.Value}");
+ 
+        int braceScope = 1;
+        while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
         {
-            var tok = Peek();
-            if (tok.Type == Tokens.TokenType.Chip)
-            {
-                _index++; // Consume 'chip'
-                Consume(Tokens.TokenType.LeftBrace, "Expected open brace '{' initialization for inline language chip.");
-                
-                toothBodySb.AppendLine($"\t\t// [Tooth Engine Gateway]: Foreign Code Block Extraction Below");
-                toothBodySb.AppendLine($"\t\t// Target Sub-Ecosystem: {langTok.Value}");
-                
-                int braceScope = 1;
-                while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
-                {
-                    var innerTok = Peek();
-                    if (innerTok.Type == Tokens.TokenType.LeftBrace) braceScope++;
-                    if (innerTok.Type == Tokens.TokenType.RightBrace) braceScope--;
-                    
-                    _index++;
-                    if (braceScope == 0) break;
-                    
-                    // Render out internal code elements inside documentation comments for safety placeholder tracking
-                    toothBodySb.AppendLine($"\t\t// {innerTok.Value}");
-                }
-            }
-            else
-            {
-                toothBodySb.Append(EmitTokenFormatting(tok));
-                _index++;
-            }
+            var innerTok = Peek();
+            if (innerTok.Type == Tokens.TokenType.LeftBrace) braceScope++;
+            if (innerTok.Type == Tokens.TokenType.RightBrace) braceScope--;
+ 
+            _index++;
+            if (braceScope == 0) break;
+ 
+            // Render out internal code elements inside documentation comments for safety placeholder tracking
+            toothBodySb.AppendLine($"\t\t// {innerTok.Value}");
         }
-        Consume(Tokens.TokenType.RightBrace, "Expected closing brace '}' for tooth scope.");
-
+ 
         // Per Syntax guidelines: Fallback function placeholder generation safely stubbed out
         string defaultFallback = returnType == "void" ? "" : $"return default({returnType});";
         
