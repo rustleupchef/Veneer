@@ -200,35 +200,26 @@ public class Lexer
 
                     tokens.Add(new Tokens.Token(Tokens.TokenType.Identifier, closingTag));
 
-                    // Skip ahead until we hit the newline to begin gathering raw content safely
-                    while (i < source.Length && source[i] != '\n') i++;
-                    if (i < source.Length) i++; // Consume the '\n'
-
                     var codeContent = new System.Text.StringBuilder();
 
                     // Line-by-line collection engine
                     while (i < source.Length)
                     {
-                        int lineEnd = i;
-                        while (lineEnd < source.Length && source[lineEnd] != '\n') lineEnd++;
-                        
-                        string currentLine = source.Substring(i, lineEnd - i);
-                        string trimmedLine = currentLine.Trim();
-
-                        // Check if this line matches our custom closer tag
-                        if (trimmedLine == closingTag)
+                        char character = source[i];
+                        codeContent.Append(character);
+                        string currentCode = codeContent.ToString();
+                        if (currentCode.Length > closingTag.Length && currentCode.Substring(currentCode.Length - closingTag.Length) == closingTag)
                         {
-                            i = lineEnd;
-                            if (i < source.Length) i++; // Consume the closing tag line's break
-                            break;
+                            if (i < source.Length) i++;
+                            break;                            
                         }
 
-                        codeContent.AppendLine(currentLine);
-                        i = lineEnd;
                         if (i < source.Length) i++; // Move past line newline
                     }
-
-                    tokens.Add(new Tokens.Token(Tokens.TokenType.ForeignCodeBlock, codeContent.ToString()));
+                    
+                    string code = codeContent.ToString();
+                    code = code.Substring(0, code.Length - closingTag.Length);
+                    tokens.Add(new Tokens.Token(Tokens.TokenType.ForeignCodeBlock, code));
                     continue;
                 }
 
