@@ -63,7 +63,8 @@ public class Lexer
         { ",",  Tokens.TokenType.Comma },
         { ";",  Tokens.TokenType.SemiColon },
         { ".",  Tokens.TokenType.Dot },
-        { ":",  Tokens.TokenType.Colon }
+        { ":",  Tokens.TokenType.Colon },
+        { "=>", Tokens.TokenType.Arrow }
     };
     
     public static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
@@ -183,6 +184,54 @@ public class Lexer
             if (i + 1 < source.Length)
             {
                 string twoCharOp = source.Substring(i, 2);
+                
+                // INTERCEPT ARROW OPERATOR FOR TOOTH EXTENSION
+                if (twoCharOp == "=>")
+                {
+                    tokens.Add(new Tokens.Token(Tokens.TokenType.Arrow, "=>"));
+                    i += 2;
+
+                    // Skip spaces to locate the identifier block tag (e.g., PY_ZONE)
+                    while (i < source.Length && char.IsWhiteSpace(source[i])) i++;
+
+                    int tagStart = i;
+                    while (i < source.Length && (char.IsLetterOrDigit(source[i]) || source[i] == '_')) i++;
+                    string closingTag = source.Substring(tagStart, i - tagStart);
+
+                    tokens.Add(new Tokens.Token(Tokens.TokenType.Identifier, closingTag));
+
+                    // Skip ahead until we hit the newline to begin gathering raw content safely
+                    while (i < source.Length && source[i] != '\n') i++;
+                    if (i < source.Length) i++; // Consume the '\n'
+
+                    var codeContent = new System.Text.StringBuilder();
+
+                    // Line-by-line collection engine
+                    while (i < source.Length)
+                    {
+                        int lineEnd = i;
+                        while (lineEnd < source.Length && source[lineEnd] != '\n') lineEnd++;
+                        
+                        string currentLine = source.Substring(i, lineEnd - i);
+                        string trimmedLine = currentLine.Trim();
+
+                        // Check if this line matches our custom closer tag
+                        if (trimmedLine == closingTag)
+                        {
+                            i = lineEnd;
+                            if (i < source.Length) i++; // Consume the closing tag line's break
+                            break;
+                        }
+
+                        codeContent.AppendLine(currentLine);
+                        i = lineEnd;
+                        if (i < source.Length) i++; // Move past line newline
+                    }
+
+                    tokens.Add(new Tokens.Token(Tokens.TokenType.ForeignCodeBlock, codeContent.ToString()));
+                    continue;
+                }
+
                 if (OperatorsAndPunctuation.ContainsKey(twoCharOp))
                 {
                     tokens.Add(new Tokens.Token(OperatorsAndPunctuation[twoCharOp], twoCharOp));

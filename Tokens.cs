@@ -6,6 +6,7 @@ public class Tokens
     {
         // Special
         EndOfFile, Invalid,
+        Arrow, ForeignCodeBlock,
 
         // Identifiers & Literals
         Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral, BoolLiteral,

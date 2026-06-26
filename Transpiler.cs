@@ -110,7 +110,7 @@ public class Transpiler
         return $"\tpublic static {returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
     }
 
-    // Translates: tooth<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) language ("[LANG]") { chip { ... } }
+    // Translates: tooth<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) language ("[LANG]") => [TAG] \n [CODE] \n [TAG]
     private string ParseTooth()
     {
         Consume(Tokens.TokenType.Tooth, "Expected 'tooth' keyword.");
@@ -124,7 +124,7 @@ public class Transpiler
         
         var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for tooth name.");
         string toothName = nameTok.Value;
- 
+
         Consume(Tokens.TokenType.LeftParen, "Expected '(' after tooth identifier.");
         var paramsSb = new StringBuilder();
         while (Peek().Type != Tokens.TokenType.RightParen && Peek().Type != Tokens.TokenType.EndOfFile)
@@ -133,33 +133,32 @@ public class Transpiler
             _index++;
         }
         Consume(Tokens.TokenType.RightParen, "Expected ')' closing tooth parameters.");
- 
+
         Consume(Tokens.TokenType.Language, "Expected 'language' property constraint.");
         Consume(Tokens.TokenType.LeftParen, "Expected '(' framing target platform string.");
         var langTok = Consume(Tokens.TokenType.StringLiteral, "Expected literal string definition for language target.");
         Consume(Tokens.TokenType.RightParen, "Expected ')' framing target platform string.");
- 
-        Consume(Tokens.TokenType.LeftBrace, "Expected open brace '{' for tooth execution scope.");
- 
+
+        // CONSUME NEW ARROW HEREDOC STRUCTURE
+        Consume(Tokens.TokenType.Arrow, "Expected '=>' boundary operator to open foreign code zone.");
+        var tagTok = Consume(Tokens.TokenType.Identifier, "Expected block identifier bounding tag.");
+        var bodyTok = Consume(Tokens.TokenType.ForeignCodeBlock, "Expected raw foreign content packet data.");
+
         var toothBodySb = new StringBuilder();
         toothBodySb.AppendLine($"\t\t// [Tooth Engine Gateway]: Foreign Code Block Extraction Below");
         toothBodySb.AppendLine($"\t\t// Target Sub-Ecosystem: {langTok.Value}");
- 
-        int braceScope = 1;
-        while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
+        toothBodySb.AppendLine($"\t\t// Identifier Envelope Guard: {tagTok.Value}");
+
+        // Split up the captured multiline block string and display safely as code comments
+        string[] lines = bodyTok.Value.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        foreach (var line in lines)
         {
-            var innerTok = Peek();
-            if (innerTok.Type == Tokens.TokenType.LeftBrace) braceScope++;
-            if (innerTok.Type == Tokens.TokenType.RightBrace) braceScope--;
- 
-            _index++;
-            if (braceScope == 0) break;
- 
-            // Render out internal code elements inside documentation comments for safety placeholder tracking
-            toothBodySb.AppendLine($"\t\t// {innerTok.Value}");
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                toothBodySb.AppendLine($"\t\t// {line}");
+            }
         }
- 
-        // Per Syntax guidelines: Fallback function placeholder generation safely stubbed out
+
         string defaultFallback = returnType == "void" ? "" : $"return default({returnType});";
         
         var sb = new StringBuilder();
