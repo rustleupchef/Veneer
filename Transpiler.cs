@@ -75,6 +75,18 @@ public class Transpiler
         _index++;
         return EmitTokenFormatting(token);
     }
+    
+    // Parsing for return type
+    private string ParseReturnType()
+    {
+        var sb = new StringBuilder();
+        while (Peek().Type != Tokens.TokenType.GreaterThan && Peek().Type != Tokens.TokenType.EndOfFile)
+        {
+            sb.Append(Peek().Value);
+            _index++;
+        }
+        return sb.ToString();
+    }
 
     // Translates: func<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) { ... }
     private string ParseFunction()
@@ -82,9 +94,7 @@ public class Transpiler
         Consume(Tokens.TokenType.Function, "Expected 'func' keyword.");
         Consume(Tokens.TokenType.LessThan, "Expected '<' following 'func'.");
         
-        var returnTypeTok = Peek();
-        _index++; 
-        string returnType = returnTypeTok.Value;
+        string returnType = ParseReturnType();
         
         Consume(Tokens.TokenType.GreaterThan, "Expected '>' closing return type.");
         
@@ -110,15 +120,60 @@ public class Transpiler
         return $"\tpublic static {returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
     }
 
+    private string CreateForeignFunction(string parameters, string language, string body, string returnType, string functionName)
+    {
+        List<Tokens.Token> arguments = Lexer
+            .LexText(parameters)
+            .Where(n => 
+                n.Type != Tokens.TokenType.Comma && 
+                n.Type != Tokens.TokenType.EndOfFile)
+            .ToList();
+        
+        List<Tokens.Token> returnToks = Lexer
+            .LexText(returnType)
+            .Where(n =>
+                n.Type != Tokens.TokenType.EndOfFile)
+            .ToList();
+        
+        switch (language)
+        {
+            case "PYTHON":
+                List<string> pythonIndentifiers = arguments
+                    .Where(n => n.Type == Tokens.TokenType.Identifier)
+                    .Select(n => n.Value)
+                    .ToList();
+                string pythonArgs = string.Join(", ", pythonIndentifiers);
+                return $"def {functionName} ({pythonArgs}):\n{body}";
+            case "JAVASCRIPT":
+                List<string> javascriptIndentifiers = arguments
+                    .Where(n => n.Type == Tokens.TokenType.Identifier)
+                    .Select(n => n.Value)
+                    .ToList();
+                string javascriptArgs = string.Join(", ", javascriptIndentifiers);
+                return $"function {functionName} ({javascriptArgs}){{\n{body}}}";
+            case "CSHARP":
+                return $"{returnType} {functionName}({parameters}){{\n{body}\n}}";
+            default:
+                return string.Empty;
+        }
+    }
+
+    // Translates: Foregin Code Block to c# code, handling the interop layer
+    private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
+    {
+        language = language.ToUpper().TrimStart('\"').TrimEnd('\"');
+        string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
+        Console.WriteLine($"Foreign function: {foreignFunction}");
+        return default(string);
+    }
+
     // Translates: tooth<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) language ("[LANG]") => [TAG] \n [CODE] \n [TAG]
     private string ParseTooth()
     {
         Consume(Tokens.TokenType.Tooth, "Expected 'tooth' keyword.");
         Consume(Tokens.TokenType.LessThan, "Expected '<' following 'tooth'.");
         
-        var returnTypeTok = Peek();
-        _index++;
-        string returnType = returnTypeTok.Value;
+        string returnType = ParseReturnType();
         
         Consume(Tokens.TokenType.GreaterThan, "Expected '>' closing tooth return type.");
         
@@ -149,15 +204,8 @@ public class Transpiler
         toothBodySb.AppendLine($"\t\t// Target Sub-Ecosystem: {langTok.Value}");
         toothBodySb.AppendLine($"\t\t// Identifier Envelope Guard: {tagTok.Value}");
 
-        // Split up the captured multiline block string and display safely as code comments
-        string[] lines = bodyTok.Value.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        foreach (var line in lines)
-        {
-            if (!string.IsNullOrWhiteSpace(line))
-            {
-                toothBodySb.AppendLine($"\t\t// {line}");
-            }
-        }
+        // TODO: Generate c# codeblock from foreign code block
+        toothBodySb.Append(ParseChip(langTok.Value, paramsSb.ToString().Trim(), bodyTok.Value, returnType, toothName));
 
         string defaultFallback = returnType == "void" ? "" : $"return default({returnType});";
         
