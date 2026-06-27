@@ -120,39 +120,222 @@ public class Transpiler
         return $"\tpublic static {returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
     }
 
+    // Parse C# function notation into a function of foreign language for compiling
     private string CreateForeignFunction(string parameters, string language, string body, string returnType, string functionName)
     {
-        List<Tokens.Token> arguments = Lexer
-            .LexText(parameters)
-            .Where(n => 
-                n.Type != Tokens.TokenType.Comma && 
-                n.Type != Tokens.TokenType.EndOfFile)
-            .ToList();
+        // Local helper to parse structured variable/type information out of individual token streams
+        var parseParamFromTokens = (List<Tokens.Token> toks) =>
+        {
+            string bType = "void";
+            int rank = 0;
+            string name = "";
+            
+            if (toks.Count > 0)
+            {
+                name = toks.Last().Value;
+                var typeToks = toks.Take(toks.Count - 1).ToList();
+                if (typeToks.Count > 0)
+                {
+                    bType = typeToks[0].Value;
+                    bool isArray = typeToks.Any(t => t.Type == Tokens.TokenType.LeftBracket);
+                    if (isArray)
+                    {
+                        int commaCount = typeToks.Count(t => t.Type == Tokens.TokenType.Comma);
+                        int bracketCount = typeToks.Count(t => t.Type == Tokens.TokenType.LeftBracket);
+                        rank = Math.Max(bracketCount, commaCount + 1);
+                    }
+                }
+            }
+            return (BaseType: bType, ArrayRank: rank, Name: name);
+        };
+
+        // Mapping layer matching Veneer type syntax structures to your target runtime systems
+        var mapTypeToLanguage = (string baseType, int rank, string lang) =>
+        {
+            switch (lang)
+            {
+                case "CSHARP":
+                case "JAVA":
+                    string csBase = baseType switch {
+                        "int" => "int",
+                        "float" => "float",
+                        "bool" => lang == "JAVA" ? "boolean" : "bool",
+                        "char" => "char",
+                        "string" => lang == "JAVA" ? "String" : "string",
+                        "void" => "void",
+                        _ => baseType
+                    };
+                    if (rank == 0) return csBase;
+                    return lang == "CSHARP" 
+                        ? csBase + "[" + new string(',', rank - 1) + "]" 
+                        : csBase + string.Concat(System.Linq.Enumerable.Repeat("[]", rank));
+
+                case "TYPESCRIPT":
+                    string tsBase = baseType switch {
+                        "int" or "float" => "number",
+                        "bool" => "boolean",
+                        "char" or "string" => "string",
+                        "void" => "void",
+                        _ => baseType
+                    };
+                    if (rank == 0) return tsBase;
+                    return tsBase + string.Concat(System.Linq.Enumerable.Repeat("[]", rank));
+
+                case "C":
+                case "C++":
+                case "CPP":
+                    string cBase = baseType switch {
+                        "int" => "int",
+                        "float" => "float",
+                        "bool" => "bool",
+                        "char" => "char",
+                        "string" => lang == "C" ? "const char*" : "std::string",
+                        "void" => "void",
+                        _ => baseType
+                    };
+                    if (rank == 0) return cBase;
+                    return cBase + new string('*', rank);
+
+                case "RUST":
+                    if (baseType == "void") return "()";
+                    string rustBase = baseType switch {
+                        "int" => "i32",
+                        "float" => "f32",
+                        "bool" => "bool",
+                        "char" => "char",
+                        "string" => "&str",
+                        _ => baseType
+                    };
+                    if (rank == 0) return rustBase;
+                    string rustType = rustBase;
+                    for (int i = 0; i < rank; i++) rustType = $"&[{rustType}]";
+                    return rustType;
+
+                case "GO":
+                    if (baseType == "void") return "";
+                    string goBase = baseType switch {
+                        "int" => "int",
+                        "float" => "float64",
+                        "bool" => "bool",
+                        "char" => "rune",
+                        "string" => "string",
+                        _ => baseType
+                    };
+                    if (rank == 0) return goBase;
+                    return string.Concat(System.Linq.Enumerable.Repeat("[]", rank)) + goBase;
+
+                default:
+                    return "";
+            }
+        };
+
+        // Clean structural target name rules
+        string langUpper = language.ToUpper().Trim().Replace("\"", "");
         
-        List<Tokens.Token> returnToks = Lexer
-            .LexText(returnType)
-            .Where(n =>
-                n.Type != Tokens.TokenType.EndOfFile)
-            .ToList();
-        
-        switch (language)
+        // 1. Process and extract properties of the Return Type string
+        var returnToks = Lexer.LexText(returnType).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
+        string retBase = returnToks.Count > 0 ? returnToks[0].Value : "void";
+        int retRank = 0;
+        if (returnToks.Any(t => t.Type == Tokens.TokenType.LeftBracket))
+        {
+            int commaCount = returnToks.Count(t => t.Type == Tokens.TokenType.Comma);
+            int bracketCount = returnToks.Count(t => t.Type == Tokens.TokenType.LeftBracket);
+            retRank = Math.Max(bracketCount, commaCount + 1);
+        }
+
+        // 2. Loop parameters via Lexer token boundaries to safely bypass nested dimensional arrays
+        var paramTokens = Lexer.LexText(parameters).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
+        var parsedParams = new List<(string BaseType, int ArrayRank, string Name)>();
+        var currentTokens = new List<Tokens.Token>();
+        int bracketScope = 0;
+
+        foreach (var tok in paramTokens)
+        {
+            if (tok.Type == Tokens.TokenType.LeftBracket) bracketScope++;
+            if (tok.Type == Tokens.TokenType.RightBracket) bracketScope--;
+
+            if (tok.Type == Tokens.TokenType.Comma && bracketScope == 0)
+            {
+                if (currentTokens.Count > 0)
+                {
+                    parsedParams.Add(parseParamFromTokens(currentTokens));
+                    currentTokens.Clear();
+                }
+            }
+            else
+            {
+                currentTokens.Add(tok);
+            }
+        }
+        if (currentTokens.Count > 0)
+        {
+            parsedParams.Add(parseParamFromTokens(currentTokens));
+        }
+
+        // 3. Rebuild and map parameters array structures matching specific language syntaxes
+        var argStrings = new List<string>();
+        foreach (var p in parsedParams)
+        {
+            string typeStr = mapTypeToLanguage(p.BaseType, p.ArrayRank, langUpper);
+            switch (langUpper)
+            {
+                case "PYTHON":
+                case "JAVASCRIPT":
+                    argStrings.Add(p.Name);
+                    break;
+                case "TYPESCRIPT":
+                    argStrings.Add($"{p.Name}: {typeStr}");
+                    break;
+                case "CSHARP":
+                case "JAVA":
+                case "C":
+                case "C++":
+                case "CPP":
+                    argStrings.Add($"{typeStr} {p.Name}");
+                    break;
+                case "RUST":
+                    argStrings.Add($"{p.Name}: {typeStr}");
+                    break;
+                case "GO":
+                    argStrings.Add($"{p.Name} {typeStr}");
+                    break;
+            }
+        }
+
+        string formattedArgs = string.Join(", ", argStrings);
+        string retTypeStr = mapTypeToLanguage(retBase, retRank, langUpper);
+
+        // 4. Output final code block syntax skeleton templates
+        switch (langUpper)
         {
             case "PYTHON":
-                List<string> pythonIndentifiers = arguments
-                    .Where(n => n.Type == Tokens.TokenType.Identifier)
-                    .Select(n => n.Value)
-                    .ToList();
-                string pythonArgs = string.Join(", ", pythonIndentifiers);
-                return $"def {functionName} ({pythonArgs}):\n{body}";
+                return $"def {functionName}({formattedArgs}):\n{body}";
+                
             case "JAVASCRIPT":
-                List<string> javascriptIndentifiers = arguments
-                    .Where(n => n.Type == Tokens.TokenType.Identifier)
-                    .Select(n => n.Value)
-                    .ToList();
-                string javascriptArgs = string.Join(", ", javascriptIndentifiers);
-                return $"function {functionName} ({javascriptArgs}){{\n{body}}}";
+                return $"function {functionName}({formattedArgs}) {{\n{body}\n}}";
+                
+            case "TYPESCRIPT":
+                return $"function {functionName}({formattedArgs}): {retTypeStr} {{\n{body}\n}}";
+                
             case "CSHARP":
-                return $"{returnType} {functionName}({parameters}){{\n{body}\n}}";
+                return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
+                
+            case "JAVA":
+                return $"public static {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
+                
+            case "C":
+            case "C++":
+            case "CPP":
+                return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
+                
+            case "RUST":
+                string rustRet = retBase == "void" ? "" : $" -> {retTypeStr}";
+                return $"fn {functionName}({formattedArgs}){rustRet} {{\n{body}\n}}";
+                
+            case "GO":
+                string goRet = retBase == "void" ? "" : $" {retTypeStr}";
+                return $"func {functionName}({formattedArgs}){goRet} {{\n{body}\n}}";
+                
             default:
                 return string.Empty;
         }
