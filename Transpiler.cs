@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Veneer;
@@ -8,10 +10,12 @@ public class Transpiler
 {
     private readonly List<Tokens.Token> _tokens;
     private int _index = 0;
+    private string _build;
 
-    public Transpiler(List<Tokens.Token> tokens)
+    public Transpiler(List<Tokens.Token> tokens, string build = "/build")
     {
         _tokens = tokens;
+        _build = build;
     }
 
     // Helper to look ahead without consuming
@@ -341,6 +345,64 @@ public class Transpiler
         }
     }
 
+    private string CompileFunction(string function, string language)
+    {
+        switch (language)
+        {
+            case "C":
+                string name = Guid.NewGuid().ToString();
+                string cFile = Path.Join(_build, $"{name}.c");
+                File.WriteAllText(cFile, function);
+                string outputFile = Path.Join(_build, $"{name}");
+
+                string arguments = "";
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    outputFile += ".dll";
+                    arguments = $"-shared -o {outputFile} {cFile}";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    outputFile += ".so";
+                    arguments = $"-shared -fPIC -o {outputFile} {cFile}";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    outputFile += ".dylib";
+                    arguments = $"-dynamiclib -o {outputFile} {cFile}";
+                }
+
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "gcc",
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process process = Process.Start(startInfo))
+                {
+                    string output = process.StandardOutput.ReadToEnd();
+                    string error = process.StandardError.ReadToEnd();
+                    
+                    Console.WriteLine(output);
+                    
+                    process.WaitForExit();
+
+                    if (process.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {error}");
+                    }
+                }
+                
+                return outputFile;
+            default:
+                return default(string);
+        }
+    }
+
     // Translates: Foregin Code Block to c# code, handling the interop layer
     private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
     {
@@ -351,6 +413,9 @@ public class Transpiler
         
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
+
+        CompileFunction(foreignFunction, language);
+        
         return default(string);
     }
 

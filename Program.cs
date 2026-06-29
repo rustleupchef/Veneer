@@ -8,7 +8,7 @@ internal class Program
 
         try
         {
-            Transpiler transpiler = new Transpiler(tokens);
+            Transpiler transpiler = new Transpiler(tokens, Console.ReadLine());
             string result = transpiler.Transpile();
             File.WriteAllText(Console.ReadLine(), result);
         }
