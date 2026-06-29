@@ -351,8 +351,13 @@ public class Transpiler
         {
             case "C":
                 string name = Guid.NewGuid().ToString();
+                string imports = """
+                                 #include <stdio.h>
+                                 #include <stdlib.h>
+                                 #include <stdbool.h>
+                                 """;
                 string cFile = Path.Join(_build, $"{name}.c");
-                File.WriteAllText(cFile, function);
+                File.WriteAllText(cFile, $"{imports}\n{function}");
                 string outputFile = Path.Join(_build, $"{name}");
 
                 string arguments = "";
@@ -396,6 +401,9 @@ public class Transpiler
                         Console.WriteLine($"Error: {error}");
                     }
                 }
+                
+                File.Delete(cFile);
+                File.Delete(Path.Join(_build, $"{name}.o"));
                 
                 return outputFile;
             default:
