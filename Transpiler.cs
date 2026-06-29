@@ -345,6 +345,10 @@ public class Transpiler
     private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
     {
         language = language.ToUpper().TrimStart('\"').TrimEnd('\"');
+
+        if (language == "csharp")
+            return body;
+        
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
         return default(string);
@@ -385,16 +389,13 @@ public class Transpiler
         var toothBodySb = new StringBuilder();
 
         // TODO: Generate c# codeblock from foreign code block
-        if (langTok.Value != "\"csharp\"")
-            toothBodySb.Append(ParseChip(
-                langTok.Value, 
-                paramsSb.ToString().Trim(), 
-                bodyTok.Value, 
-                returnType, 
-                toothName)
-            );
-        else
-            toothBodySb.Append(bodyTok.Value);
+        toothBodySb.Append(ParseChip(
+            langTok.Value, 
+            paramsSb.ToString().Trim(), 
+            bodyTok.Value, 
+            returnType, 
+            toothName)
+        );
         
         var sb = new StringBuilder();
         sb.AppendLine($"\tpublic static {returnType} {toothName}({paramsSb.ToString().Trim()})");
