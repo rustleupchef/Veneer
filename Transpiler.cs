@@ -383,21 +383,23 @@ public class Transpiler
         var bodyTok = Consume(Tokens.TokenType.ForeignCodeBlock, "Expected raw foreign content packet data.");
 
         var toothBodySb = new StringBuilder();
-        toothBodySb.AppendLine($"\t\t// [Tooth Engine Gateway]: Foreign Code Block Extraction Below");
-        toothBodySb.AppendLine($"\t\t// Target Sub-Ecosystem: {langTok.Value}");
-        toothBodySb.AppendLine($"\t\t// Identifier Envelope Guard: {tagTok.Value}");
 
         // TODO: Generate c# codeblock from foreign code block
-        toothBodySb.Append(ParseChip(langTok.Value, paramsSb.ToString().Trim(), bodyTok.Value, returnType, toothName));
-
-        string defaultFallback = returnType == "void" ? "" : $"return default({returnType});";
+        if (langTok.Value != "\"csharp\"")
+            toothBodySb.Append(ParseChip(
+                langTok.Value, 
+                paramsSb.ToString().Trim(), 
+                bodyTok.Value, 
+                returnType, 
+                toothName)
+            );
+        else
+            toothBodySb.Append(bodyTok.Value);
         
         var sb = new StringBuilder();
         sb.AppendLine($"\tpublic static {returnType} {toothName}({paramsSb.ToString().Trim()})");
         sb.AppendLine("\t{");
         sb.Append(toothBodySb.ToString());
-        sb.AppendLine($"\t\tthrow new NotImplementedException(\"Veneer Marshalling Engine for {langTok.Value} is in prototype stages.\");");
-        if (!string.IsNullOrEmpty(defaultFallback)) sb.AppendLine($"\t\t{defaultFallback}");
         sb.AppendLine("\t}");
         
         return sb.ToString();
