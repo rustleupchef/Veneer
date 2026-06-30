@@ -335,7 +335,7 @@ public class Transpiler
                 return $"extern \"C\" {{\n {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}\n}}";
             case "RUST":
                 string rustRet = retBase == "void" ? "" : $" -> {retTypeStr}";
-                return $"fn {functionName}({formattedArgs}){rustRet} {{\n{body}\n}}";
+                return $"#[no_mangle]\nfn {functionName}({formattedArgs}){rustRet} {{\n{body}\n}}";
                 
             case "GO":
                 string goRet = retBase == "void" ? "" : $" {retTypeStr}";
@@ -368,27 +368,27 @@ public class Transpiler
                 
                 string cFile = Path.Join(_build, $"{name}{fileType}");
                 File.WriteAllText(cFile, $"{imports}\n{function}");
-                string outputFile = Path.Join(_build, $"{name}");
+                string cOutputFile = Path.Join(_build, $"{name}");
 
                 string arguments = "";
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    outputFile += ".dll";
-                    arguments = $"-shared -o {outputFile} {cFile}";
+                    cOutputFile += ".dll";
+                    arguments = $"-shared -o {cOutputFile} {cFile}";
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    outputFile += ".so";
-                    arguments = $"-shared -fPIC -o {outputFile} {cFile}";
+                    cOutputFile += ".so";
+                    arguments = $"-shared -fPIC -o {cOutputFile} {cFile}";
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    outputFile += ".dylib";
-                    arguments = $"-dynamiclib -o {outputFile} {cFile}";
+                    cOutputFile += ".dylib";
+                    arguments = $"-dynamiclib -o {cOutputFile} {cFile}";
                 }
 
                 string compiler = language == "C" ? "gcc" : "g++";
-                ProcessStartInfo startInfo = new ProcessStartInfo
+                ProcessStartInfo cStartInfo = new ProcessStartInfo
                 {
                     FileName = compiler,
                     Arguments = arguments,
@@ -398,25 +398,70 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process process = Process.Start(startInfo))
+                using (Process cProcess = Process.Start(cStartInfo))
                 {
-                    string output = process.StandardOutput.ReadToEnd();
-                    string error = process.StandardError.ReadToEnd();
+                    string cOutput = cProcess.StandardOutput.ReadToEnd();
+                    string cError = cProcess.StandardError.ReadToEnd();
                     
-                    Console.WriteLine(output);
+                    Console.WriteLine(cOutput);
                     
-                    process.WaitForExit();
+                    cProcess.WaitForExit();
 
-                    if (process.ExitCode != 0)
+                    if (cProcess.ExitCode != 0)
                     {
-                        Console.WriteLine($"Error: {error}");
+                        Console.WriteLine($"Error: {cError}");
                     }
                 }
                 
                 File.Delete(cFile);
                 File.Delete(Path.Join(_build, $"{name}.o"));
                 
-                return outputFile;
+                return cOutputFile;
+            case "RUST":
+                string rustFile = Path.Join(_build, $"{name}.rs");
+                File.WriteAllText(rustFile, function);
+                string rustOutputFile = Path.Join(_build, $"{name}");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    rustOutputFile = $"{rustOutputFile}lib.dll";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    rustOutputFile = $"{rustOutputFile}lib.so";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    rustOutputFile = $"{rustOutputFile}lib.dylib";
+                }
+
+                ProcessStartInfo rustInfo = new ProcessStartInfo
+                {
+                    FileName = "rustc",
+                    Arguments = $"--crate-type=cdylib {rustFile} -o {rustOutputFile}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process rustProcess = Process.Start(rustInfo))
+                {
+                    string rustOutput = rustProcess.StandardOutput.ReadToEnd();
+                    string rustError = rustProcess.StandardError.ReadToEnd();
+                    
+                    Console.WriteLine(rustOutput);
+                    
+                    rustProcess.WaitForExit();
+
+                    if (rustProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {rustError}");
+                    }
+                }
+                
+                File.Delete(rustFile);
+                
+                return rustOutputFile;
             default:
                 return default(string);
         }
