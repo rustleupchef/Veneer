@@ -328,10 +328,10 @@ public class Transpiler
                 return $"public static {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "C":
-            case "C++":
-            case "CPP":
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
-                
+            case "CPP":
+            case "C++":
+                return $"extern \"C\" {{\n {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}\n}}";
             case "RUST":
                 string rustRet = retBase == "void" ? "" : $" -> {retTypeStr}";
                 return $"fn {functionName}({formattedArgs}){rustRet} {{\n{body}\n}}";
@@ -347,10 +347,10 @@ public class Transpiler
 
     private string CompileFunction(string function, string language)
     {
+        string name = Guid.NewGuid().ToString();
         switch (language)
         {
             case "C":
-                string name = Guid.NewGuid().ToString();
                 string imports = """
                                  #include <stdio.h>
                                  #include <stdlib.h>
@@ -422,7 +422,7 @@ public class Transpiler
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
 
-        CompileFunction(foreignFunction, language);
+        string libraryFile = CompileFunction(foreignFunction, language);
         
         return default(string);
     }
