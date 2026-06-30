@@ -426,12 +426,12 @@ public class Transpiler
     private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
     {
         language = language.ToUpper().TrimStart('\"').TrimEnd('\"');
-
-        if (language == "csharp")
-            return body;
         
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
+        
+        if (language == "CSHARP")
+            return foreignFunction;
 
         string libraryFile = CompileFunction(foreignFunction, language);
         if (File.Exists(libraryFile))
@@ -488,7 +488,7 @@ public class Transpiler
         var sb = new StringBuilder();
         if (toothBodySb.Length > 0)
         {
-            sb.Append(toothBodySb.ToString());
+            sb.Append(" " + toothBodySb);
         }
         else
         {
