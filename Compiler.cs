@@ -43,7 +43,12 @@ public static class Compiler
             MethodInfo entryPoint = assembly.EntryPoint;
             if (entryPoint != null)
             {
-                entryPoint.Invoke(null, new object[] { new string[0] });
+                // Check if the method expects arguments
+                object[] parameters = entryPoint.GetParameters().Length == 0 
+                    ? null 
+                    : new object[] { new string[0] };
+
+                entryPoint.Invoke(null, parameters);
             }
         }
     }

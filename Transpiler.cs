@@ -46,6 +46,7 @@ public class Transpiler
         sb.AppendLine("//---------------------------------------------------------");
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine("using System.Runtime.InteropServices;");
         sb.AppendLine();
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
@@ -433,6 +434,10 @@ public class Transpiler
         Console.WriteLine($"Foreign function: {foreignFunction}");
 
         string libraryFile = CompileFunction(foreignFunction, language);
+        if (File.Exists(libraryFile))
+        {
+            return $"[DllImport(\"{libraryFile}\")]\npublic static extern {returnType} {functionName}({parameters});\n";
+        }
         
         return default(string);
     }
@@ -481,10 +486,17 @@ public class Transpiler
         );
         
         var sb = new StringBuilder();
-        sb.AppendLine($"\tpublic static {returnType} {toothName}({paramsSb.ToString().Trim()})");
-        sb.AppendLine("\t{");
-        sb.Append(toothBodySb.ToString());
-        sb.AppendLine("\t}");
+        if (toothBodySb.Length > 0)
+        {
+            sb.Append(toothBodySb.ToString());
+        }
+        else
+        {
+            sb.AppendLine($"\tpublic static {returnType} {toothName}({paramsSb.ToString().Trim()})");
+            sb.AppendLine("\t{");
+            sb.AppendLine("\t}");
+        }
+
         
         return sb.ToString();
     }
