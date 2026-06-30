@@ -350,13 +350,22 @@ public class Transpiler
         string name = Guid.NewGuid().ToString();
         switch (language)
         {
+            case "C++":
+            case "CPP":
             case "C":
-                string imports = """
+                string cImports = """
                                  #include <stdio.h>
                                  #include <stdlib.h>
                                  #include <stdbool.h>
                                  """;
-                string cFile = Path.Join(_build, $"{name}.c");
+                string cppImports = """
+                                    #include <iostream>
+                                    #include <string>
+                                    """;
+                string imports = language == "C" ?  cImports : cppImports;
+                string fileType = language == "C" ? ".c" : ".cpp";
+                
+                string cFile = Path.Join(_build, $"{name}{fileType}");
                 File.WriteAllText(cFile, $"{imports}\n{function}");
                 string outputFile = Path.Join(_build, $"{name}");
 
@@ -377,9 +386,10 @@ public class Transpiler
                     arguments = $"-dynamiclib -o {outputFile} {cFile}";
                 }
 
+                string compiler = language == "C" ? "gcc" : "g++";
                 ProcessStartInfo startInfo = new ProcessStartInfo
                 {
-                    FileName = "gcc",
+                    FileName = compiler,
                     Arguments = arguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
