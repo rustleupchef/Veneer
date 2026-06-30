@@ -15,6 +15,9 @@ public static class Compiler
         var references = new MetadataReference[]
         {
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
+            MetadataReference.CreateFromFile(Assembly.Load(new AssemblyName("System.Runtime")).Location),
+            MetadataReference.CreateFromFile(typeof(FileSystemInfo).Assembly.Location)
         };
 
         CSharpCompilation compilation = CSharpCompilation.Create(
