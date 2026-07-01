@@ -339,7 +339,7 @@ public class Transpiler
                 
             case "GO":
                 string goRet = retBase == "void" ? "" : $" {retTypeStr}";
-                return $"func {functionName}({formattedArgs}){goRet} {{\n{body}\n}}";
+                return $"//export {functionName}\nfunc {functionName}({formattedArgs}){goRet} {{\n{body}\n}}";
                 
             default:
                 return string.Empty;
@@ -462,6 +462,52 @@ public class Transpiler
                 File.Delete(rustFile);
                 
                 return rustOutputFile;
+            case "GO":
+                string goFile = Path.Join(_build, $"{name}.go");
+                string goImports = """
+                                   package main
+                                   import "C"
+                                   """;
+                string goMainFunction = "func main() {}";
+                File.WriteAllText(goFile, $"{goImports}\n{function}\n\n{goMainFunction}");
+                string goOutputFile = Path.Join(_build, $"{name}");
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    goOutputFile = $"{goOutputFile}.dll";
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    goOutputFile = $"{goOutputFile}.so";
+                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    goOutputFile = $"{goOutputFile}.dylib";
+                }
+
+                ProcessStartInfo goInfo = new ProcessStartInfo
+                {
+                    FileName = "go",
+                    Arguments = $"build -buildmode=c-shared -o {goOutputFile} {goFile}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using (Process goProcess = Process.Start(goInfo))
+                {
+                    string goOutput = goProcess.StandardOutput.ReadToEnd();
+                    string goError = goProcess.StandardError.ReadToEnd();
+                    
+                    Console.WriteLine(goOutput);
+                    
+                    goProcess.WaitForExit();
+
+                    if (goProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {goError}");
+                    }
+                }
+                
+                File.Delete(goFile);
+                return goOutputFile;
             default:
                 return default(string);
         }
