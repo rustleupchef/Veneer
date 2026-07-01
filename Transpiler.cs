@@ -507,6 +507,7 @@ public class Transpiler
                 }
                 
                 File.Delete(goFile);
+                File.Delete(Path.Join(_build, $"{name}.h"));
                 return goOutputFile;
             default:
                 return default(string);
