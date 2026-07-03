@@ -568,7 +568,11 @@ public class Transpiler
                         Console.WriteLine($"Error: {typescriptError}");
                     }
                 }
-                return GenerateOutlierCode("JAVASCRIPT", File.ReadAllText(javascriptFile), parameters, returnType, name);
+
+                string output = File.ReadAllText(javascriptFile);
+                File.Delete(javascriptFile);
+                File.Delete(typescriptFile);
+                return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name);
             default:
                 return default(string);
         }
