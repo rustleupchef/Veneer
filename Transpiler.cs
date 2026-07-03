@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 namespace Veneer;
 
@@ -47,6 +49,8 @@ public class Transpiler
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Runtime.InteropServices;");
+        sb.AppendLine("using Microsoft.ClearScript.V8;");
+        sb.AppendLine("using Python.Runtime;");
         sb.AppendLine();
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
@@ -346,6 +350,7 @@ public class Transpiler
         }
     }
 
+    // Generate library file for languages that support DLLImport utility of c#
     private string CompileFunction(string function, string language)
     {
         string name = Guid.NewGuid().ToString();
@@ -513,6 +518,61 @@ public class Transpiler
                 return default(string);
         }
     }
+    
+    // Generate c# code for outliers out of languages
+    private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
+    {
+        switch (language)
+        {
+            case "JAVASCRIPT":
+                List<string> paramsToks = Lexer
+                    .LexText(parameters)
+                    .Where(n => n.Type == Tokens.TokenType.Identifier)
+                    .Select(n => n.Value)
+                    .ToList();
+                
+                StringBuilder jsBody = new StringBuilder();
+                jsBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
+                jsBody.AppendLine("using var engine = new V8ScriptEngine();");
+                jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
+                jsBody.AppendLine($"return ({returnType})engine.Script.{name}({string.Join(", ", paramsToks)});");
+                jsBody.AppendLine("}");
+                return jsBody.ToString();
+            case "TYPESCRIPT":
+                string uuidName = Guid.NewGuid().ToString();
+                string typescriptFile = Path.Join(_build, $"{uuidName}.ts");
+                string javascriptFile = Path.Join(_build, $"{uuidName}.js");
+                File.WriteAllText(typescriptFile, function);
+
+                ProcessStartInfo typescriptInfo = new ProcessStartInfo
+                {
+                    FileName = "tsc",
+                    Arguments = $"{typescriptFile}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process typescriptProcess = Process.Start(typescriptInfo))
+                {
+                    string typescriptOutput = typescriptProcess.StandardOutput.ReadToEnd();
+                    string typescriptError = typescriptProcess.StandardError.ReadToEnd();
+                    
+                    Console.WriteLine(typescriptOutput);
+                    
+                    typescriptProcess.WaitForExit();
+
+                    if (typescriptProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {typescriptError}");
+                    }
+                }
+                return GenerateOutlierCode("JAVASCRIPT", File.ReadAllText(javascriptFile), parameters, returnType, name);
+            default:
+                return default(string);
+        }
+    }
 
     // Translates: Foregin Code Block to c# code, handling the interop layer
     private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
@@ -530,6 +590,8 @@ public class Transpiler
         {
             return $"[DllImport(\"{libraryFile}\")]\npublic static extern {returnType} {functionName}({parameters});\n";
         }
+        
+        return GenerateOutlierCode(language, foreignFunction, parameters, returnType, functionName);
         
         return default(string);
     }
