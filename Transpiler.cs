@@ -49,7 +49,7 @@ public class Transpiler
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Runtime.InteropServices;");
-        sb.AppendLine("using Microsoft.ClearScript.V8;");
+        sb.AppendLine("using Jint;");
         sb.AppendLine("using Python.Runtime;");
         sb.AppendLine();
         sb.AppendLine("namespace VeneerRuntime;");
@@ -533,9 +533,9 @@ public class Transpiler
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine("using var engine = new V8ScriptEngine();");
+                jsBody.AppendLine("var engine = new Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
-                jsBody.AppendLine($"return ({returnType})engine.Script.{name}({string.Join(", ", paramsToks)});");
+                jsBody.AppendLine($"return engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)})");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
