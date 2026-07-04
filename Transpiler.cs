@@ -51,7 +51,6 @@ public class Transpiler
         sb.AppendLine("using System.Runtime.InteropServices;");
         sb.AppendLine("using Jint;");
         sb.AppendLine("using Python.Runtime;");
-        sb.AppendLine();
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
         sb.AppendLine("public static class Program");
@@ -535,7 +534,7 @@ public class Transpiler
                 jsBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
                 jsBody.AppendLine("var engine = new Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
-                jsBody.AppendLine($"return engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)})");
+                jsBody.AppendLine($"return ({returnType}) engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}).ToObject();");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":

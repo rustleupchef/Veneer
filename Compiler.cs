@@ -17,7 +17,9 @@ public static class Compiler
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Console).Assembly.Location),
             MetadataReference.CreateFromFile(Assembly.Load(new AssemblyName("System.Runtime")).Location),
-            MetadataReference.CreateFromFile(typeof(FileSystemInfo).Assembly.Location)
+            MetadataReference.CreateFromFile(typeof(FileSystemInfo).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Jint.Engine).Assembly.Location),
+            MetadataReference.CreateFromFile(Assembly.Load(new AssemblyName("Acornima")).Location)
         };
 
         CSharpCompilation compilation = CSharpCompilation.Create(
