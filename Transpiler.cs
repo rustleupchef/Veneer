@@ -518,6 +518,96 @@ public class Transpiler
         }
     }
     
+    private string FindPythonDll()
+    {
+        // 1. Try resolving via environment PATH (supports virtual envs, global, conda, etc.)
+        string[] commands = { "python", "python3" };
+
+        // Cross-platform Python script to discover its own internal runtime library location
+        string locatorScript = 
+            "import sys, os, sysconfig; " +
+            "dll = (sysconfig.get_config_var('DLLLIBRARY') or f'python{sys.version_info.major}{sys.version_info.minor}.dll') if os.name == 'nt' else (sysconfig.get_config_var('LDLIBRARY') or f'libpython{sys.version_info.major}.{sys.version_info.minor}.so'); " +
+            "libdir = sys.base_prefix if os.name == 'nt' else (sysconfig.get_config_var('LIBDIR') or os.path.join(sys.base_prefix, 'lib')); " +
+            "print(os.path.abspath(os.path.join(libdir, dll)))";
+
+        foreach (var cmd in commands)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = cmd,
+                    Arguments = $"-c \"{locatorScript}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (var process = Process.Start(psi))
+                {
+                    if (process != null)
+                    {
+                        string output = process.StandardOutput.ReadToEnd().Trim();
+                        process.WaitForExit();
+
+                        if (process.ExitCode == 0 && !string.IsNullOrEmpty(output) && File.Exists(output))
+                        {
+                            return output;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through to try the next command if this execution fails
+            }
+        }
+
+        // 2. Windows Registry Fallback (if Python is installed but missing from PATH)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            try
+            {
+                using (var baseKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Python\PythonCore"))
+                {
+                    if (baseKey != null)
+                    {
+                        var versions = baseKey.GetSubKeyNames();
+                        if (versions.Length > 0)
+                        {
+                            // Sort to isolate the latest registered version
+                            Array.Sort(versions);
+                            string latestVersion = versions[versions.Length - 1];
+
+                            using (var installKey = baseKey.OpenSubKey($@"{latestVersion}\InstallPath"))
+                            {
+                                string exePath = installKey?.GetValue("ExecutablePath")?.ToString();
+                                if (!string.IsNullOrEmpty(exePath))
+                                {
+                                    string dir = Path.GetDirectoryName(exePath);
+                                    string versionToken = latestVersion.Replace(".", "");
+                                    string dllPath = Path.Combine(dir, $"python{versionToken}.dll");
+
+                                    if (File.Exists(dllPath))
+                                    {
+                                        return dllPath;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Suppress registry exceptions for platform safety
+            }
+        }
+
+        throw new FileNotFoundException("Could not automatically locate the Python shared library. Ensure Python is installed and accessible.");
+    }
+    
     // Generate c# code for outliers out of languages
     private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
     {
@@ -572,6 +662,49 @@ public class Transpiler
                 File.Delete(javascriptFile);
                 File.Delete(typescriptFile);
                 return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name);
+            case "PYTHON":
+                List<string> pyParamsToks = Lexer
+                .LexText(parameters)
+                .Where(n => n.Type == Tokens.TokenType.Identifier)
+                .Select(n => n.Value)
+                .ToList();
+
+                bool isVoid = returnType.Trim().Equals("void", StringComparison.OrdinalIgnoreCase);
+                string pyArgs = string.Join(", ", pyParamsToks.Select(p => $"{p}.ToPython()"));
+
+                StringBuilder pyBody = new StringBuilder();
+                pyBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
+                pyBody.AppendLine("if (!PythonEngine.IsInitialized)");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine($"Runtime.PythonDLL = {JsonSerializer.Serialize(FindPythonDll())};");
+                pyBody.AppendLine("PythonEngine.Initialize();");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("using (Py.GIL())");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine("using (var scope = Py.CreateScope())");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine($"scope.Exec({JsonSerializer.Serialize(function)});");
+                pyBody.AppendLine($"using (var pyFunc = scope.Get(\"{name}\"))");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine($"var pyArgs = new PyObject[] {{ {pyArgs} }};");
+                pyBody.AppendLine("try");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine("using (var pyResult = pyFunc.Invoke(pyArgs))");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine(isVoid
+                    ? "return;"
+                    : $"return pyResult.As<{returnType}>();");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("finally");
+                pyBody.AppendLine("{");
+                pyBody.AppendLine("foreach (var a in pyArgs) { a.Dispose(); }");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("}");
+                pyBody.AppendLine("}");
+                return pyBody.ToString();
             default:
                 return default(string);
         }
