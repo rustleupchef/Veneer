@@ -50,7 +50,7 @@ public class Transpiler
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Runtime.InteropServices;");
         sb.AppendLine("using Jint;");
-        sb.AppendLine("using Python.Runtime;");
+        sb.AppendLine("using Veneer;");
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
         sb.AppendLine("public static class Program");
@@ -521,6 +521,9 @@ public class Transpiler
     // Generate c# code for outliers out of languages
     private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
     {
+        bool isVoid = returnType.Trim().ToLower() == "void";
+        string leadingString = isVoid ? "" : "return ";
+
         switch (language)
         {
             case "JAVASCRIPT":
@@ -534,7 +537,7 @@ public class Transpiler
                 jsBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
                 jsBody.AppendLine("var engine = new Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
-                jsBody.AppendLine($"return ({returnType}) engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}).ToObject();");
+                jsBody.AppendLine($"{leadingString}({returnType}) engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}).ToObject();");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
@@ -572,6 +575,19 @@ public class Transpiler
                 File.Delete(javascriptFile);
                 File.Delete(typescriptFile);
                 return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name);
+            case "PYTHON":
+                List<string> pyParamToks = Lexer
+                    .LexText(parameters)
+                    .Where(n => n.Type == Tokens.TokenType.Identifier)
+                    .Select(n => n.Value)
+                    .Select(n => $"(object) {n}")
+                    .ToList();
+                string pyParams = string.Join(", ", pyParamToks);
+                StringBuilder pyBody = new StringBuilder();
+                pyBody.AppendLine($"public static {returnType} {name}({parameters}) {{");
+                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{returnType}>({JsonSerializer.Serialize(function)}, {pyParams});");
+                pyBody.AppendLine("}");
+                return pyBody.ToString();
             default:
                 return default(string);
         }
