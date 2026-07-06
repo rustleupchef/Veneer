@@ -329,7 +329,7 @@ public class Transpiler
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "JAVA":
-                return $"public static {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
+                return $"@CEntryPoint(name = \"{functionName}X\")\npublic static {retTypeStr} {functionName}(IsolateThread thread, {formattedArgs}) {{\n{body}\n}}";
                 
             case "C":
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
@@ -350,7 +350,7 @@ public class Transpiler
     }
 
     // Generate library file for languages that support DLLImport utility of c#
-    private string CompileFunction(string function, string language)
+    private string CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
     {
         string name = Guid.NewGuid().ToString();
         switch (language)
@@ -513,6 +513,135 @@ public class Transpiler
                 File.Delete(goFile);
                 File.Delete(Path.Join(_build, $"{name}.h"));
                 return goOutputFile;
+            case "JAVA":
+                string buildDir = Path.Join(_build, name);
+                Directory.CreateDirectory(buildDir);
+
+                string javaFile = Path.Join(buildDir, "VeneerTooth.java");
+                string javaImports = """
+                                     import org.graalvm.nativeimage.IsolateThread;
+                                     import org.graalvm.nativeimage.c.function.CEntryPoint;
+                                     """;
+                string javaClassWrapper = "public final class VeneerTooth";
+                File.WriteAllText(javaFile, $"{javaImports}\n{javaClassWrapper}{{{function}}}");
+
+                string extension = "";
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) extension = "dll";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) extension = "so";
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) extension = "dylib";
+
+                ProcessStartInfo javaInfo = new ProcessStartInfo
+                {
+                    FileName = "javac",
+                    Arguments = $"{javaFile}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process javaProcess = Process.Start(javaInfo))
+                {
+                    Console.WriteLine(javaProcess.StandardOutput.ReadToEnd());
+                    string javaError = javaProcess.StandardError.ReadToEnd();
+                    javaProcess.WaitForExit();
+                    if (javaProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {javaError}");
+                        return default(string);
+                    }
+                }
+
+                string classFile = Path.Join(buildDir, "VeneerTooth.class");
+
+                ProcessStartInfo nativeImageInfo = new ProcessStartInfo
+                {
+                    FileName = "native-image",
+                    Arguments = $"--shared -H:Name={classFile} -cp {buildDir}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (Process nativeImageProcess = Process.Start(nativeImageInfo))
+                {
+                    Console.WriteLine(nativeImageProcess.StandardOutput.ReadToEnd());
+                    string nativeImageError = nativeImageProcess.StandardError.ReadToEnd();
+                    nativeImageProcess.WaitForExit();
+                    if (nativeImageProcess.ExitCode != 0)
+                    {
+                        Console.WriteLine($"Error: {nativeImageError}");
+                        return default(string);
+                    }
+                }
+
+                string headerFile = $"{classFile}.h";
+                if (!File.Exists(headerFile) || !File.ReadAllText(headerFile).Contains(functionName))
+                {
+                    Console.WriteLine($"Error: expected entry point '{functionName}' was not found in {headerFile}.");
+                    return default(string);
+                }
+
+                string javaCFile = Path.Join(buildDir, "main.c");
+                File.WriteAllText(javaCFile, cWrapper);
+
+                string javaSharedLib = $"{classFile}.{extension}";
+                string javaOutputFile = Path.Join(buildDir, name);   // lives alongside its dependency
+                string javaArguments = "";
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    javaOutputFile += ".dll";
+                    javaArguments = $"-shared -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir}";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    javaOutputFile += ".so";
+                    javaArguments = $"-shared -fPIC -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir} -Wl,-rpath,$ORIGIN";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    javaOutputFile += ".dylib";
+                    javaArguments = $"-dynamiclib -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir} -Wl,-rpath,@loader_path";
+                }
+
+                ProcessStartInfo javaCStartInfo = new ProcessStartInfo
+                {
+                    FileName = "gcc",
+                    Arguments = javaArguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                bool gccSucceeded;
+                using (Process javaCProcess = Process.Start(javaCStartInfo))
+                {
+                    Console.WriteLine(javaCProcess.StandardOutput.ReadToEnd());
+                    string javaCError = javaCProcess.StandardError.ReadToEnd();
+                    javaCProcess.WaitForExit();
+                    gccSucceeded = javaCProcess.ExitCode == 0;
+                    if (!gccSucceeded) Console.WriteLine($"Error: {javaCError}");
+                }
+
+                if (gccSucceeded)
+                {
+                    // Safe to delete: only needed at compile time, never at runtime.
+                    File.Delete(javaFile);
+                    File.Delete(classFile);
+                    File.Delete(javaCFile);
+                    File.Delete(headerFile);
+                    string dynHeader = $"{classFile}_dynamic.h";
+                    if (File.Exists(dynHeader)) File.Delete(dynHeader);
+
+                    // NOT deleted: javaSharedLib (VeneerTooth.class.so) — the wrapper .so
+                    // needs it at runtime, found via -rpath $ORIGIN since it's in the same
+                    // per-build directory. It now lives safely, isolated from other builds.
+                }
+
+                return gccSucceeded ? javaOutputFile : default(string);
             default:
                 return default(string);
         }
@@ -604,7 +733,37 @@ public class Transpiler
         if (language == "CSHARP")
             return foreignFunction;
 
-        string libraryFile = CompileFunction(foreignFunction, language);
+        string cWrapper = "";
+        string entryPoint = "";
+        if (language == "JAVA")
+        {
+            entryPoint = $"{functionName}X";
+            List<string> paramToks = Lexer
+                .LexText(parameters)
+                .Where(n => n.Type == Tokens.TokenType.Identifier)
+                .Select(n => n.Value)
+                .ToList();
+            string leadingBodyString = returnType.Trim().ToLower() == "void" ? "" : "return ";
+            string cWrapperBody = $"""
+                                  ensure_isolate();
+                                  {leadingBodyString}{functionName}X(thread, {string.Join(", ", paramToks)});
+                                  """;
+            cWrapper = $$"""
+                         #include "VeneerTooth.class.h"
+                         #include <stdio.h>
+                         static graal_isolatethread_t *thread = NULL;
+                         
+                         static void ensure_isolate(void) {
+                             if (thread == NULL) {
+                                 graal_isolate_t *isolate = NULL;
+                                 graal_create_isolate(NULL, &isolate, &thread);
+                             }
+                         }
+                         {{CreateForeignFunction(parameters, "C", cWrapperBody, returnType, functionName)}}
+                         """;
+        }
+
+        string libraryFile = CompileFunction(foreignFunction, language, cWrapper, entryPoint);
         if (File.Exists(libraryFile))
         {
             return $"[DllImport(\"{libraryFile}\")]\npublic static extern {returnType} {functionName}({parameters});\n";
