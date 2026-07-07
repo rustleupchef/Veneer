@@ -27,6 +27,10 @@ public class Lexer
         { "private", Tokens.TokenType.Private },
         { "protected", Tokens.TokenType.Protected },
         { "internal", Tokens.TokenType.Internal },
+        { "static", Tokens.TokenType.Static },
+        { "readonly", Tokens.TokenType.ReadOnly },
+        { "const", Tokens.TokenType.Const },
+        { "volatile", Tokens.TokenType.Volatile },
     };
 
     // 2. Operators & Punctuation Dictionary: For literal code symbols

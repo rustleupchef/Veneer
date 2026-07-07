@@ -17,6 +17,7 @@ public class Tokens
         Function, Class,
         New, This, Base,
         Public, Private, Protected, Internal,
+        Static, ReadOnly, Const, Volatile,
         Tooth, Language,
 
         // Operators
