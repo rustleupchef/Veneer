@@ -128,7 +128,7 @@ public class Transpiler
         // Grab internal function block execution loops
         string blockBody = ParseBlock();
 
-        return $"\tpublic static {returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
+        return $"{returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
     }
 
     // Parse C# function notation into a function of foreign language for compiling
