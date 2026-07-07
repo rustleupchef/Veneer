@@ -654,7 +654,8 @@ public class Transpiler
     private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
     {
         bool isVoid = returnType.Trim().ToLower() == "void";
-        string leadingString = isVoid ? "" : "return ";
+        string leadingString = isVoid ? "" : $"return ({returnType})";
+        string trailingString = isVoid ? "" : ".ToObject()";
 
         switch (language)
         {
@@ -669,7 +670,7 @@ public class Transpiler
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
                 jsBody.AppendLine("var engine = new Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
-                jsBody.AppendLine($"{leadingString}({returnType}) engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}).ToObject();");
+                jsBody.AppendLine($"{leadingString}engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}){trailingString};");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
@@ -715,9 +716,10 @@ public class Transpiler
                     .Select(n => $"(object) {n}")
                     .ToList();
                 string pyParams = string.Join(", ", pyParamToks);
+                string pyReturn = returnType == "void" ? "object" : returnType;
                 StringBuilder pyBody = new StringBuilder();
                 pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
-                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{returnType}>({JsonSerializer.Serialize(function)}, {pyParams});");
+                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(function)}, {pyParams});");
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
             default:
