@@ -890,7 +890,6 @@ public class Transpiler
             case Tokens.TokenType.Static:
             case Tokens.TokenType.ReadOnly:
             case Tokens.TokenType.Const:
-            case Tokens.TokenType.Volatile:
                 return token.Value + " ";
             case Tokens.TokenType.Assign:
             case Tokens.TokenType.Plus:
