@@ -73,7 +73,24 @@ public class Lexer
         { ":",  Tokens.TokenType.Colon },
         { "=>", Tokens.TokenType.Arrow }
     };
-    
+
+    public static bool isModifier(Tokens.TokenType type)
+    {
+        HashSet<Tokens.TokenType> toothModifiers = new()
+        {
+            Tokens.TokenType.Public,
+            Tokens.TokenType.Private,
+            Tokens.TokenType.Protected,
+            Tokens.TokenType.Internal,
+            Tokens.TokenType.Static,
+            Tokens.TokenType.Async,
+            Tokens.TokenType.Virtual, 
+            Tokens.TokenType.Override,
+            Tokens.TokenType.Sealed,
+        };
+        return toothModifiers.Contains(type);
+    }
+
     public static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
     {
         // 1. Check if it's a known keyword
@@ -258,6 +275,16 @@ public class Lexer
                 string lexeme = source.Substring(start, i - start);
                 Tokens.TokenType type = ResolveLiteralOrIdentifier(lexeme);
                 tokens.Add(new Tokens.Token(type, lexeme));
+                
+                // Parse modifiers for tooth in to Tooth Modifiers
+                if (type == Tokens.TokenType.Tooth)
+                {
+                    for (int j = 2; j <= tokens.Count && isModifier(tokens[^j].Type); j++)
+                    {
+                        Tokens.Token token = tokens[^j];
+                        tokens[^j] = token with { Type = Tokens.TokenType.ToothModifier };
+                    }
+                }
                 continue;
             }
 

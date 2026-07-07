@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -13,6 +10,7 @@ public class Transpiler
     private readonly List<Tokens.Token> _tokens;
     private int _index = 0;
     private string _build;
+    private List<Tokens.Token> toothModifiers = new();
 
     public Transpiler(List<Tokens.Token> tokens, string build = "/build")
     {
@@ -69,7 +67,7 @@ public class Transpiler
     private string ParseTopLevelStatement()
     {
         var token = Peek();
-
+        
         if (token.Type == Tokens.TokenType.Function)
         {
             return ParseFunction();
@@ -81,6 +79,11 @@ public class Transpiler
 
         // Allow classes or other global expressions to fall back gracefully
         _index++;
+        if (token.Type == Tokens.TokenType.ToothModifier)
+        {
+            toothModifiers.Add(token);
+            return string.Empty;    
+        }
         return EmitTokenFormatting(token);
     }
     
@@ -729,9 +732,16 @@ public class Transpiler
         
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
+
+        List<string> baseToks = toothModifiers
+                .Select(n => n.Value)
+                .ToList();
         
         if (language == "CSHARP")
-            return foreignFunction;
+        {
+            toothModifiers.Clear();
+            return $"{string.Join(" ", baseToks)} {foreignFunction}";
+        }
 
         string cWrapper = "";
         string entryPoint = "";
@@ -766,12 +776,16 @@ public class Transpiler
         string libraryFile = CompileFunction(foreignFunction, language, cWrapper, entryPoint);
         if (File.Exists(libraryFile))
         {
-            return $"[DllImport(\"{libraryFile}\")]\npublic static extern {returnType} {functionName}({parameters});\n";
+            List<string> compiledToks = toothModifiers
+                .Where(n => n.Value != "static")
+                .Select(n => n.Value)
+                .ToList();
+            toothModifiers.Clear();
+            return $"[DllImport(\"{libraryFile}\")]\n{string.Join(" ", compiledToks)} static extern {returnType} {functionName}({parameters});\n";
         }
         
-        return GenerateOutlierCode(language, foreignFunction, parameters, returnType, functionName);
-        
-        return default(string);
+        toothModifiers.Clear();
+        return $"{string.Join(" ", baseToks)} {GenerateOutlierCode(language, foreignFunction, parameters, returnType, functionName)}";
     }
 
     // Translates: tooth<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) language ("[LANG]") => [TAG] \n [CODE] \n [TAG]

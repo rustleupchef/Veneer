@@ -19,7 +19,7 @@ public class Tokens
         Public, Private, Protected, Internal,
         Static, ReadOnly, Const,
         Async, Virtual, Override, Sealed,
-        Tooth, Language,
+        Tooth, Language, ToothModifier,
 
         // Operators
         Plus, Minus, Star, Slash, Modulo,
