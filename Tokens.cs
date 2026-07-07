@@ -18,6 +18,7 @@ public class Tokens
         New, This, Base,
         Public, Private, Protected, Internal,
         Static, ReadOnly, Const,
+        Async, Virtual, Override, Sealed,
         Tooth, Language,
 
         // Operators
