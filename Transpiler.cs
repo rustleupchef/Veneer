@@ -666,7 +666,7 @@ public class Transpiler
                     .ToList();
                 
                 StringBuilder jsBody = new StringBuilder();
-                jsBody.AppendLine($"public static {returnType} {name} ({parameters}) {{");
+                jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
                 jsBody.AppendLine("var engine = new Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
                 jsBody.AppendLine($"{leadingString}({returnType}) engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}).ToObject();");
@@ -716,7 +716,7 @@ public class Transpiler
                     .ToList();
                 string pyParams = string.Join(", ", pyParamToks);
                 StringBuilder pyBody = new StringBuilder();
-                pyBody.AppendLine($"public static {returnType} {name}({parameters}) {{");
+                pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
                 pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{returnType}>({JsonSerializer.Serialize(function)}, {pyParams});");
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
