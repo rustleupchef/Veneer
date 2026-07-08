@@ -218,9 +218,25 @@ public class Lexer
                     // Skip spaces to locate the identifier block tag (e.g., PY_ZONE)
                     while (i < source.Length && char.IsWhiteSpace(source[i])) i++;
 
+                    Dictionary<char, char> specialTags = new Dictionary<char, char>
+                    {
+                        ['{'] = '}',
+                        ['['] = ']',
+                        ['|'] = '|'
+                    };
+                    
                     int tagStart = i;
-                    while (i < source.Length && (char.IsLetterOrDigit(source[i]) || source[i] == '_')) i++;
+                    while (
+                        i < source.Length && 
+                        (char.IsLetterOrDigit(source[i]) || source[i] == '_' || specialTags.ContainsKey(source[i]))) i++;
                     string closingTag = source.Substring(tagStart, i - tagStart);
+                    foreach (char specialTag in specialTags.Keys)
+                    {
+                        if (closingTag == specialTag.ToString())
+                        {
+                            closingTag = $"{specialTags[closingTag.ToCharArray()[0]]}";
+                        }
+                    }
 
                     tokens.Add(new Tokens.Token(Tokens.TokenType.Identifier, closingTag));
 
