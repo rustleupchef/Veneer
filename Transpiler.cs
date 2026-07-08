@@ -12,6 +12,19 @@ public class Transpiler
     private string _build;
     private List<Tokens.Token> toothModifiers = new();
 
+    // Fully-parsed user-defined classes, collected separately from the
+    // auto-generated Program wrapper so they can be emitted as top-level
+    // siblings instead of being folded into (and overridden by) it.
+    private readonly List<string> _userClasses = new();
+
+    // Modifier keywords that can legally precede a class or function declaration.
+    private static readonly HashSet<Tokens.TokenType> ModifierTokens = new()
+    {
+        Tokens.TokenType.Public, Tokens.TokenType.Private, Tokens.TokenType.Protected, Tokens.TokenType.Internal,
+        Tokens.TokenType.Static, Tokens.TokenType.ReadOnly, Tokens.TokenType.Const,
+        Tokens.TokenType.Async, Tokens.TokenType.Virtual, Tokens.TokenType.Override, Tokens.TokenType.Sealed
+    };
+
     public Transpiler(List<Tokens.Token> tokens, string build = "/build")
     {
         _tokens = tokens;
@@ -51,16 +64,37 @@ public class Transpiler
         sb.AppendLine("using Veneer;");
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
-        sb.AppendLine("public static class Program");
-        sb.AppendLine("{");
 
-        // Parse global-level constructs until we hit the end of the file
+        // Top-level func/tooth constructs still get collected into the
+        // auto-generated Program wrapper below. User-defined classes are
+        // parsed out separately (see ParseClass) into _userClasses so this
+        // wrapper never nests or overrides them.
+        var programBody = new StringBuilder();
         while (Peek().Type != Tokens.TokenType.EndOfFile)
         {
-            sb.Append(ParseTopLevelStatement());
+            programBody.Append(ParseTopLevelStatement());
         }
 
-        sb.AppendLine("}");
+        // Emit user-defined classes as their own top-level types —
+        // siblings of Program, never children of it.
+        foreach (var userClass in _userClasses)
+        {
+            sb.AppendLine(userClass);
+            sb.AppendLine();
+        }
+
+        // Only emit the auto-generated Program wrapper if there's actual
+        // top-level func/tooth content for it to hold. If the user's source
+        // is fully organized into their own class(es), there's nothing left
+        // that needs auto-wrapping.
+        if (programBody.ToString().Trim().Length > 0)
+        {
+            sb.AppendLine("public static class Program");
+            sb.AppendLine("{");
+            sb.Append(programBody);
+            sb.AppendLine("}");
+        }
+
         return sb.ToString();
     }
 
@@ -76,8 +110,17 @@ public class Transpiler
         {
             return ParseTooth();
         }
+        if (IsClassDeclarationAhead())
+        {
+            // Parse the user's class as one complete unit and stash it in
+            // _userClasses instead of letting it fall through to raw token
+            // emission — that's what used to let it get folded into, and
+            // effectively overridden by, the auto-generated Program wrapper.
+            _userClasses.Add(ParseClass());
+            return string.Empty;
+        }
 
-        // Allow classes or other global expressions to fall back gracefully
+        // Allow other global expressions to fall back gracefully
         _index++;
         if (token.Type == Tokens.TokenType.ToothModifier)
         {
@@ -85,6 +128,115 @@ public class Transpiler
             return string.Empty;    
         }
         return EmitTokenFormatting(token);
+    }
+
+    // Looks ahead past any leading modifiers (public, static, sealed, etc.)
+    // to check whether a class declaration begins at the current position.
+    private bool IsClassDeclarationAhead()
+    {
+        int offset = 0;
+        while (ModifierTokens.Contains(Peek(offset).Type))
+        {
+            offset++;
+        }
+        return Peek(offset).Type == Tokens.TokenType.Class;
+    }
+
+    // Translates: [MODIFIERS] class [IDENTIFIER] [: BASE, ...] { ... }
+    // Parsed as one coherent unit (instead of falling through to raw,
+    // token-by-token emission) so it can be returned to the caller and
+    // placed as its own top-level class rather than folded into the
+    // auto-generated Program class.
+    private string ParseClass()
+    {
+        var sb = new StringBuilder();
+
+        while (ModifierTokens.Contains(Peek().Type))
+        {
+            sb.Append(Peek().Value + " ");
+            _index++;
+        }
+
+        Consume(Tokens.TokenType.Class, "Expected 'class' keyword.");
+        sb.Append("class ");
+
+        var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for class name.");
+        sb.Append(nameTok.Value);
+
+        // Optional base class / interface list: class Foo : Base, IBar
+        if (Peek().Type == Tokens.TokenType.Colon)
+        {
+            _index++;
+            sb.Append(" : ");
+            var parts = new List<string>();
+            while (Peek().Type != Tokens.TokenType.LeftBrace && Peek().Type != Tokens.TokenType.EndOfFile)
+            {
+                parts.Add(Peek().Type == Tokens.TokenType.Comma ? ", " : Peek().Value);
+                _index++;
+            }
+            sb.Append(string.Join("", parts));
+        }
+
+        sb.Append('\n');
+        sb.Append(ParseClassBody());
+
+        return sb.ToString();
+    }
+
+    // Parses a class body using the same construct rules as the top level
+    // (functions, tooth blocks, nested classes, raw member fallback for
+    // things like fields/constructors), but stops at the class's own
+    // closing brace instead of end-of-file.
+    private string ParseClassBody()
+    {
+        Consume(Tokens.TokenType.LeftBrace, "Expected '{' opening class body.");
+        var sb = new StringBuilder("{\n");
+        int braceScope = 1;
+
+        while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
+        {
+            var token = Peek();
+
+            if (token.Type == Tokens.TokenType.Function)
+            {
+                sb.Append(ParseFunction());
+                continue;
+            }
+            if (token.Type == Tokens.TokenType.Tooth)
+            {
+                sb.Append(ParseTooth());
+                continue;
+            }
+            if (IsClassDeclarationAhead())
+            {
+                // A genuine nested class authored by the user — nest it
+                // inline. This is not the auto-Program-wrapper problem;
+                // intentional nesting like this should be preserved.
+                sb.Append(ParseClass());
+                continue;
+            }
+
+            if (token.Type == Tokens.TokenType.LeftBrace) braceScope++;
+            if (token.Type == Tokens.TokenType.RightBrace) braceScope--;
+
+            _index++;
+
+            if (braceScope == 0)
+            {
+                sb.AppendLine("}");
+                break;
+            }
+
+            if (token.Type == Tokens.TokenType.ToothModifier)
+            {
+                toothModifiers.Add(token);
+                continue;
+            }
+
+            sb.Append(EmitTokenFormatting(token));
+        }
+
+        return sb.ToString();
     }
     
     // Parsing for return type
