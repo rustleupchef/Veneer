@@ -6,9 +6,24 @@ namespace Veneer;
 
 public static class Compiler
 {
+    private static string GetAbsoluteMSBuildIncludeString(string absoluteTargetFolder)
+    {
+        // 1. Get the full, clean absolute path (resolves any redundant slashes or relative dots)
+        string cleanedPath = Path.GetFullPath(absoluteTargetFolder);
+
+        // 2. Convert all Windows backslashes (\) to universal forward slashes (/) 
+        // This ensures MSBuild doesn't break if the path is used on Linux/macOS
+        cleanedPath = cleanedPath.Replace('\\', '/');
+
+        // 3. Append the MSBuild recursive wildcard pattern safely
+        string separator = cleanedPath.EndsWith('/') ? "" : "/";
+        
+        return $"{cleanedPath}{separator}**/*";
+    }
+    
     public static string? CompileFolder(
         string sourceFolder,
-        string outputDirectory,
+        string buildDirectory,
         string? projectName = "main",
         bool selfContained = true,
         bool singleFile = true,
@@ -74,10 +89,18 @@ public static class Compiler
                         <PackageReference Include=""Jint"" Version=""4.10.1""/>
                         <PackageReference Include=""pythonnet"" Version=""3.1.0""/>
                     </ItemGroup>
+                    <ItemGroup>
+                      <Content Include=""{GetAbsoluteMSBuildIncludeString(buildDirectory)}"">
+                        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                        
+                        <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+                      </Content>
+                    </ItemGroup>
                 </Project>
             ");
 
-            Directory.CreateDirectory(outputDirectory);
+            Directory.CreateDirectory(buildDirectory);
 
             var psi = new ProcessStartInfo("dotnet")
             {
@@ -96,7 +119,7 @@ public static class Compiler
             psi.ArgumentList.Add(selfContained ? "true" : "false");
             psi.ArgumentList.Add($"-p:PublishSingleFile={(singleFile ? "true" : "false")}");
             psi.ArgumentList.Add("-o");
-            psi.ArgumentList.Add(outputDirectory);
+            psi.ArgumentList.Add(buildDirectory);
 
             Process process;
             try
@@ -125,7 +148,7 @@ public static class Compiler
             }
 
             string exeName = projectName + (OperatingSystem.IsWindows() ? ".exe" : "");
-            string exePath = Path.Combine(outputDirectory, exeName);
+            string exePath = Path.Combine(buildDirectory, exeName);
             return File.Exists(exePath) ? exePath : null;
         }
         finally

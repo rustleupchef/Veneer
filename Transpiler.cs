@@ -933,7 +933,8 @@ public class Transpiler
                 .Select(n => n.Value)
                 .ToList();
             toothModifiers.Clear();
-            return $"[DllImport(\"{libraryFile}\")]\n{string.Join(" ", compiledToks)} static extern {returnType} {functionName}({parameters});\n";
+            return $"[DllImport(\"{Path.GetRelativePath(_build, libraryFile)}\")]" +
+                   $"\n{string.Join(" ", compiledToks)} static extern {returnType} {functionName}({parameters});\n";
         }
         
         toothModifiers.Clear();

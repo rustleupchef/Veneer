@@ -13,6 +13,9 @@ internal class Program
 
     static void RunOptions(Options opts)
     {
+        Directory.Delete(opts.BuildDirectory, true);
+        Directory.CreateDirectory(opts.BuildDirectory);
+        
         string[] files = Directory.GetFiles(opts.SourceDirectory, "*.v");
         string tempDir = Path.Combine(Path.GetTempPath(), "veneer-code-" + Guid.NewGuid());
         Directory.CreateDirectory(tempDir);
@@ -26,7 +29,7 @@ internal class Program
             File.WriteAllText(Path.Combine(tempDir, $"{name}.cs"), result);
         }
 
-        Compiler.CompileFolder(sourceFolder: tempDir, outputDirectory: opts.BuildDirectory);
+        Compiler.CompileFolder(sourceFolder: tempDir, buildDirectory: Path.GetFullPath(opts.BuildDirectory));
         
         Directory.Delete(tempDir, true);
     }
