@@ -9,7 +9,7 @@ public static class Compiler
     public static string? CompileFolder(
         string sourceFolder,
         string outputDirectory,
-        string? projectName = null,
+        string? projectName = "main",
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null)
@@ -27,7 +27,6 @@ public static class Compiler
             return null;
         }
 
-        projectName ??= new DirectoryInfo(sourceFolder).Name;
         runtimeIdentifier ??= RuntimeInformation.RuntimeIdentifier;
 
         string tempRoot = Path.Combine(Path.GetTempPath(), "veneer-build-" + Guid.NewGuid());
