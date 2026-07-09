@@ -13,4 +13,9 @@
       <PackageReference Include="pythonnet" Version="3.1.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="PythonManager.cs" />
+      <EmbeddedResource Include="PythonManager.cs" />
+    </ItemGroup>
+	
 </Project>

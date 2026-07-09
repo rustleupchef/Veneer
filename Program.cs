@@ -10,8 +10,8 @@ internal class Program
         {
             Transpiler transpiler = new Transpiler(tokens, Console.ReadLine());
             string result = transpiler.Transpile();
-            Compiler.CompileAndRun(result);
             File.WriteAllText(Console.ReadLine(), result);
+            Compiler.CompileFolder(Console.ReadLine(), Console.ReadLine());
         }
         catch (Exception ex)
         {

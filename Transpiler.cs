@@ -60,8 +60,6 @@ public class Transpiler
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Runtime.InteropServices;");
-        sb.AppendLine("using Jint;");
-        sb.AppendLine("using Veneer;");
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
 
@@ -820,7 +818,7 @@ public class Transpiler
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine("var engine = new Engine();");
+                jsBody.AppendLine("var engine = new Jint.Engine();");
                 jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
                 jsBody.AppendLine($"{leadingString}engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}){trailingString};");
                 jsBody.AppendLine("}");
