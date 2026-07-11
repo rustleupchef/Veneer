@@ -33,6 +33,7 @@ Before continuing with the unique syntax of the language, note that everything n
 
 #### Functions
 ```csharp
+// func <[RETURN_TYPE]> [FUNCTION_NAME] ([ARGUMENTS])
 func<void> foo (int bar) 
 {
     // Whatever logic is needed to be here I suppose
