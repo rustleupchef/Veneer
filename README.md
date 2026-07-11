@@ -1,114 +1,106 @@
-# Veneer Project Development Outline
-Veneer is a attempt to make a programming language that can easily use components from other languages; it's an attempt to remove the barriers to code created by the capabilities and challenges of certain languages. While the project isn't even in a prototype stage I have created a plan for the project.
-
-This comprehensive roadmap details the architecture, compilation pipeline, and implementation strategy for **Veneer**—an easy-to-setup, customizable programming language built on a high-performance C# framework.
-
----
-
-## Executive Summary: The Veneer Vision
-
-Veneer provides a rigid, high-performance C-like base language (supporting loops, variables, and math) where extensibility is achieved not by modifying syntax, but by importing foreign code packets called **"teeth"**. These teeth are managed directly inside a native standard library file rather than external configuration scripts.
-
-```
-[Veneer Code File] ──┐
-                     ├──> [ C# Compiler Front End ] ──> [ Tooth Registry ] ──> [ Back End Execution ]
-[Standard Library] ──┘
-
+```text
+██╗   ██╗███████╗███╗   ██╗███████╗███████╗██████╗ 
+██║   ██║██╔════╝████╗  ██║██╔════╝██╔════╝██╔══██╗
+██║   ██║█████╗  ██╔██╗ ██║█████╗  █████╗  ██████╔╝
+╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██╔══╝  ██╔══╝  ██╔══██╗
+ ╚████╔╝ ███████╗██║ ╚████║███████╗███████╗██║  ██║
+  ╚═══╝  ╚══════╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝  ╚═╝
+             ── A Large Scope Polygot Language ──
 ```
 
----
+## About
+Veneer is a language that was intended to make using code from other programming languages much more easily
 
-## Phase 1: Compiler Front End (C#)
+As of now Veneer has support for: C, C++, Rust, Java, C#, Python, Javascript, Typescript, and Go.
 
-The front end treats both user code and the standard library exactly the same, using a static, highly optimized parsing pipeline.
+<comment> Note that these languages are only partially supported in that there is no library support or complex data type support</comment>
 
-* **Lexical Analyzer (Scanner):** * Hand-coded in C# for peak performance and descriptive error messages.
-* Converts source characters into standard tokens (e.g., `FOR`, `WHILE`, `INT`, `IDENTIFIER`).
-* Recognizes the specialized **`tooth`** keyword to safely mark foreign code boundaries.
+## Usage
+The Veneer Compiler sadly doesn't bundle the necessary compilers and software for all the programs so you need to install a few things
 
+Requirements:
+- An installation of python on a typical path install
+- A graaval Java install (must be primary Java install at least on terminal session where veneer is ran)
+- GCC and G++ (regardless of the operating system)
+- GO compiler
+- Rust compiler
+- Dotnet
 
-* **Parser:**
-* Utilizes a **Recursive-Descent parsing** strategy ideal for the static C-like grammar.
-* Constructs a clean **Abstract Syntax Tree (AST)** representing the program's control flow.
-* Enforces a strict grammar where users have no permission to modify base language syntax.
+<comment> Note that the software will still run even if you don't have every single software noted here because each software is attached to a specific compiler for a specific language; however, you must have dotnet otherwise the compiler will not work </comment>
 
+### Syntax
+Before continuing with the unique syntax of the language, note that everything not listed here is the same as c#
 
-* **Semantic Analyzer:**
-* Manages the global symbol table to resolve scope and variable assignments.
-* Performs type checking against a predictable, reused type system layout (e.g., matching standard primitive sizes).
-
-
-
----
-
-## Phase 2: The Standard Library & Bootstrapping
-
-Instead of a separate text config file, the language uses its own code files to map and embed external features.
-
-* **The Blueprint (`std.vn`):**
-* Written entirely using Veneer syntax, acting as the mandatory root of the application loop.
-* Explicitly registers foreign functions using clear identifier blocks:
-```c
-tooth<void> fast_calculation(int x) language("rust") {
-    // Foreign instructions or library mappings go here
+#### Functions
+```csharp
+func<void> foo (int bar) 
+{
+    // Whatever logic is needed to be here I suppose
 }
-
 ```
 
+<comment> while technically speaking the functions will handle you just writing raw csharp code in here that are only available under the System namespace I believe that it is in your best interest to run all csharp related code inside a tooth function</comment>
 
+#### Teeth
+```csharp
+// tooth <[RETURN_TYPE]> [FUNCTION_NAME] ([ARGUMENTS]) language("[LANGUAGE_NAME]") => [OPENING_TAG]
+// [FOREIGN_FUNCTION_BODY]
+// [CLOSING_TAG]
+tooth<void> foo (int bar) language("C") => 
+{
+    // whatever c logic you want to do
+}
+```
 
+The tooth function acts very different compared to the base function of this language
 
-* **The Bootstrapping Pipeline:**
-1. The compiler initializes and implicitly loads `std.vn` before checking user code.
-2. The front end parses `std.vn` and automatically builds the **Tooth Registry**.
-3. The compiler proceeds to parse the user's primary source script, linking local calls back to the active Tooth Registry entries.
+Valid Language Strings (Not case sensitive):
+- CPP, C++ 
+- Csharp
+- Java
+- Python
+- Javascript
+- Typescript
+- Go
+- Rust
 
+After the => token will be listed your opening tag; this tag is one that the user defines as the character that open and closes the foreign code block.
 
+The only valid characters for the opening tag identifier are:
+- Alpha
+- Digits
+- |, {, [, _
 
----
+These are the only characters that will be recognized for the opening tage.
 
-## Phase 3: The Interop Layer & Marshalling Engine
+Generally your opening tag will be equivalent to your closing tag there are a few symbols that don't do such
 
-The core engine written in C# acts as a high-speed data translation layer between Veneer and foreign runtimes.
+| Opening Tag | Closing Tag  |
+|-------------|--------------| 
+| {           | }            |
+| [           | ]            |
 
-### Tooth Execution Matrix
+These characters will only swap to their mirrors if they make the entirety of the composition of the opening tag; otherwise, the opening tags and closing tags will simply be the same
 
-| Tooth Mode | Handling Method | Mechanism | Target Ecosystem |
-| --- | --- | --- | --- |
-| **Pre-compiled Library** | Dynamic Loading | **P/Invoke (Platform Invoke)** binds to shared files (`.dll`/`.so`). | C, C++, Rust, Go |
-| **Inline Interpreted** | Embedded Runtime | Managed wrapper scripts pass raw text into an active sub-interpreter. | Python (via PythonNET) |
-| **Inline Compiled** | Side-Compilation | Background processes invoke local toolchains natively to output temporary libraries. | Rust (`rustc`), Go (`go build`) |
+Understand that these opening tags can not be written inside your foreign code block in any form or fashion, so attempt to pick a tag that you can guarantee will not show up in any substring of your foreign code block.
 
-* **The Marshalling Engine:**
-* Maintains the speed of the wrapper by enforcing **blittable types** (primitives that match memory layouts identically across boundaries).
-* Copies flat memory blocks directly across runtimes to avoid slow serialization bottlenecks.
+### Disclaimers
+There are heavy limitations on the uses of foreign languages, and many more to note.
 
+None of teeth (foreign language functions) have access to functions out of their scope with the sole exception of csharp which functions as a regular veneer function.
 
+This programming language is designed to compile down to one file, but because of the JVE it was very difficult to make a clean implementation for Java; this resulted in the current architecture of the language desinging a C wrapper for the Java exported DLL, but this C wrapper is by default using a static reference to the Java DLL meaning that moving or deleting the Java DLL in anyware is destructive for the program, this makes Java a terrible use case for any code that will be used outside your computer (so just don't).
 
----
+Javascript in the current moment is running using Jint; Jint doesn't have access to nearly any of the tools that are found in nodejs making javascript's implementation closer to obsolete than any of the other languages, and because the typescript handling uses the same library; typescript is also far behind.
 
-## Phase 4: Back-End Execution Strategy
+This program needs access to your temp directory so if for some reason you don't have one or you don't give the program access to it then you will not be able to run the compiler.
 
-To guarantee the compiler pipeline feels cohesive and lightweight, choose one primary target architecture for execution:
+### Running The Compiler
+The way the compiler works is by parsing in two arguments for your build and source directory:
 
-> **Primary Choice: .NET CIL Bytecode Transpilation**
-> By utilizing C# to generate **Common Intermediate Language (CIL)** bytecode, Veneer programs run natively on the modern .NET runtime. This path simplifies compilation, leverages an incredibly fast Just-In-Time (JIT) optimizer, and makes loading pre-compiled or inline foreign teeth highly performant via native .NET interoperability systems.
+```bash
+    -s, --source => "this is directory that contains all your .v (veneer) files"
+    -b, --build => "this is directory where the executable and DLL files get compiled"
+```
 
----
-
-## Phase 5: Implementation Milestones
-
-* **Milestone 1: The Core Loop**
-* Deliver a basic C# console app that scans, parses, and executes a plain loop or addition problem natively.
-
-
-* **Milestone 2: The Static Gateway**
-* Incorporate the `tooth` keyword syntax parser. Create a manual C# integration testing a hardcoded P/Invoke call to a standard C library function.
-
-
-* **Milestone 3: Standard Library Interoperability**
-* Build out the implicit file reader for `std.vn`. Enable the Tooth Registry to map multiple distinct functions dynamically from a file at runtime.
-
-
-* **Milestone 4: The Inline Expansion**
-* Incorporate embedded interpreter runtimes (like PythonNET) and basic automated background compilation tools to seamlessly manage raw code packets.
+Now all you have to do is run the compiler in an terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
