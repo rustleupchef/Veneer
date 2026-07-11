@@ -465,6 +465,11 @@ public class Transpiler
 
         string formattedArgs = string.Join(", ", argStrings);
         string retTypeStr = mapTypeToLanguage(retBase, retRank, langUpper);
+        string osSpecificLeadingText = "";
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            osSpecificLeadingText = "__delspec(dllexport)";
+        }
 
         // 4. Output final code block syntax skeleton templates
         switch (langUpper)
@@ -485,10 +490,10 @@ public class Transpiler
                 return $"@CEntryPoint(name = \"{functionName}X\")\npublic static {retTypeStr} {functionName}(IsolateThread thread, {formattedArgs}) {{\n{body}\n}}";
                 
             case "C":
-                return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
+                return $"{osSpecificLeadingText} {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
             case "CPP":
             case "C++":
-                return $"extern \"C\" {{\n {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}\n}}";
+                return $"extern \"C\" {{\n {osSpecificLeadingText} {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}\n}}";
             case "RUST":
                 string rustRet = retBase == "void" ? "" : $" -> {retTypeStr}";
                 return $"#[no_mangle]\nfn {functionName}({formattedArgs}){rustRet} {{\n{body}\n}}";
