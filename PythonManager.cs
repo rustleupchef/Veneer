@@ -1,4 +1,4 @@
-namespace Veneer;
+namespace VeneerRuntime;
 
 using System;
 using System.Text.RegularExpressions;
