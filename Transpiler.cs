@@ -810,22 +810,22 @@ public class Transpiler
     {
         bool isVoid = returnType.Trim().ToLower() == "void";
         string leadingString = isVoid ? "" : $"return ({returnType})";
-        string trailingString = isVoid ? "" : ".ToObject()";
 
         switch (language)
         {
             case "JAVASCRIPT":
-                List<string> paramsToks = Lexer
+                string embeddedString = isVoid ? "" : $"<{returnType}>";
+                List<string> jsParamsToks = Lexer
                     .LexText(parameters)
                     .Where(n => n.Type == Tokens.TokenType.Identifier)
                     .Select(n => n.Value)
+                    .Select(n => $"(object) {n}")
                     .ToList();
+                string jsParams = string.Join(", ", jsParamsToks);
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine("var engine = new Jint.Engine();");
-                jsBody.AppendLine($"engine.Execute({JsonSerializer.Serialize(function)});");
-                jsBody.AppendLine($"{leadingString}engine.Invoke(\"{name}\", {string.Join(", ", paramsToks)}){trailingString};");
+                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(function)}, {jsParams});");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":

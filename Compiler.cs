@@ -64,7 +64,15 @@ public static class Compiler
                     GetManifestResourceStream("Veneer.PythonManager.cs")
                 ).ReadToEnd();
             File.WriteAllText(Path.Join(tempRoot, "PythonManager.cs"), pythonManger);
-
+            
+            // Add Javascript manager in the temp directory
+            string javascriptManager = new StreamReader(
+                Assembly.
+                    GetExecutingAssembly().
+                    GetManifestResourceStream("Veneer.JavascriptManager.cs")
+                ).ReadToEnd();
+            File.WriteAllText(Path.Join(tempRoot, "JavascriptManager.cs"), javascriptManager);
+            
             // Target whatever TFM this program itself is running on, so this doesn't
             // need to be bumped by hand every time you move to a new SDK.
             string tfm = $"net{Environment.Version.Major}.0";
@@ -86,7 +94,6 @@ public static class Compiler
                         <InvariantGlobalization>true</InvariantGlobalization>{extraProps}
                     </PropertyGroup>
                     <ItemGroup>
-                        <PackageReference Include=""Jint"" Version=""4.10.1""/>
                         <PackageReference Include=""pythonnet"" Version=""3.1.0""/>
                     </ItemGroup>
                     <ItemGroup>
