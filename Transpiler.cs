@@ -1049,6 +1049,7 @@ public class Transpiler
             case Tokens.TokenType.Return:
             case Tokens.TokenType.Int:
             case Tokens.TokenType.Float:
+            case Tokens.TokenType.Double:
             case Tokens.TokenType.Bool:
             case Tokens.TokenType.Char:
             case Tokens.TokenType.Void:

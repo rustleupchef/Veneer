@@ -13,7 +13,7 @@ public class Tokens
 
         // Keywords
         For, While, If, Else, Return,
-        Int, Float, Bool, Char, Void, String,
+        Int, Float, Double, Bool, Char, Void, String,
         Function, Class,
         New, This, Base,
         Public, Private, Protected, Internal,

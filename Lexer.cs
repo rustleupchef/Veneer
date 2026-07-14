@@ -12,6 +12,7 @@ public class Lexer
         { "return", Tokens.TokenType.Return },
         { "int", Tokens.TokenType.Int },
         { "float", Tokens.TokenType.Float },
+        { "double", Tokens.TokenType.Double },
         { "bool", Tokens.TokenType.Bool },
         { "char", Tokens.TokenType.Char },
         { "void", Tokens.TokenType.Void },
