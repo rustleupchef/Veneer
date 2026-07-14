@@ -688,10 +688,12 @@ public class Transpiler
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) extension = "so";
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) extension = "dylib";
 
+                // 1. Run javac relatively inside buildDir
                 ProcessStartInfo javaInfo = new ProcessStartInfo
                 {
                     FileName = "javac",
-                    Arguments = $"{javaFile}",
+                    Arguments = "VeneerTooth.java",
+                    WorkingDirectory = buildDir, // Run locally inside build directory
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -710,12 +712,12 @@ public class Transpiler
                     }
                 }
 
-                string classFile = Path.Join(buildDir, "VeneerTooth.class");
-
+                // 2. Run native-image using purely relative naming so no absolute paths leak into the binary
                 ProcessStartInfo nativeImageInfo = new ProcessStartInfo
                 {
                     FileName = "native-image",
-                    Arguments = $"--shared -H:Name={classFile} -cp {buildDir}",
+                    Arguments = $"--shared -H:Name=VeneerTooth.class -cp .",
+                    WorkingDirectory = buildDir, // Run locally inside build directory
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -734,7 +736,7 @@ public class Transpiler
                     }
                 }
 
-                string headerFile = $"{classFile}.h";
+                string headerFile = Path.Join(buildDir, "VeneerTooth.class.h");
                 if (!File.Exists(headerFile) || !File.ReadAllText(headerFile).Contains(functionName))
                 {
                     Console.WriteLine($"Error: expected entry point '{functionName}' was not found in {headerFile}.");
@@ -744,30 +746,31 @@ public class Transpiler
                 string javaCFile = Path.Join(buildDir, "main.c");
                 File.WriteAllText(javaCFile, cWrapper);
 
-                string javaSharedLib = $"{classFile}.{extension}";
-                string javaOutputFile = Path.Join(buildDir, name);   // lives alongside its dependency
+                string javaOutputFile = Path.Join(buildDir, name);   
                 string javaArguments = "";
 
+                // 3. Link using purely local filenames so the linker bakes relative relationships
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     javaOutputFile += ".dll";
-                    javaArguments = $"-shared -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir}";
+                    javaArguments = $"-shared -o {name}.dll main.c VeneerTooth.class.dll -I.";
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
                     javaOutputFile += ".so";
-                    javaArguments = $"-shared -fPIC -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir} -Wl,-rpath,$ORIGIN";
+                    javaArguments = $"-shared -fPIC -o {name}.so main.c VeneerTooth.class.so -I. -Wl,-rpath,$ORIGIN";
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
                     javaOutputFile += ".dylib";
-                    javaArguments = $"-dynamiclib -o {javaOutputFile} {javaCFile} {javaSharedLib} -I{buildDir} -Wl,-rpath,@loader_path";
+                    javaArguments = $"-dynamiclib -o {name}.dylib main.c VeneerTooth.class.dylib -I. -Wl,-rpath,@loader_path";
                 }
 
                 ProcessStartInfo javaCStartInfo = new ProcessStartInfo
                 {
                     FileName = "gcc",
                     Arguments = javaArguments,
+                    WorkingDirectory = buildDir, // Run locally inside build directory
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -786,17 +789,13 @@ public class Transpiler
 
                 if (gccSucceeded)
                 {
-                    // Safe to delete: only needed at compile time, never at runtime.
+                    // Safe to delete compile-time artifacts using precise paths
                     File.Delete(javaFile);
-                    File.Delete(classFile);
+                    File.Delete(Path.Join(buildDir, "VeneerTooth.class"));
                     File.Delete(javaCFile);
                     File.Delete(headerFile);
-                    string dynHeader = $"{classFile}_dynamic.h";
+                    string dynHeader = Path.Join(buildDir, "VeneerTooth.class_dynamic.h");
                     if (File.Exists(dynHeader)) File.Delete(dynHeader);
-
-                    // NOT deleted: javaSharedLib (VeneerTooth.class.so) — the wrapper .so
-                    // needs it at runtime, found via -rpath $ORIGIN since it's in the same
-                    // per-build directory. It now lives safely, isolated from other builds.
                 }
 
                 return gccSucceeded ? javaOutputFile : default(string);
