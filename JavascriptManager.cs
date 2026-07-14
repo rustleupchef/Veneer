@@ -10,38 +10,6 @@ namespace VeneerRuntime;
 
 /// <summary>
 /// Runs JavaScript through Node.js from C#.
-///
-/// Usage:
-///   string result = JavascriptManager.Run("function(a, b) { return a + b; }", 2, 3);
-///   // result == "5"
-///
-///   string result2 = JavascriptManager.Run("async (name) => `hello ${name}`", "world");
-///   // result2 == "\"hello world\""
-///
-///   int sum = JavascriptManager.Run&lt;int&gt;("(a, b) => a + b", 2, 3);
-///   // sum == 5
-///
-/// Isolation guarantee:
-///   Every call to Run/RunAsync spawns a brand new "node" child process and evaluates
-///   the supplied code inside a freshly created V8 context (via Node's "vm" module) in
-///   that process. Nothing is shared between calls: no globals, no functions, no
-///   variables, no module cache, no timers. A function or variable defined/attached to
-///   the global object by one Run() call can never be seen or invoked by a later Run()
-///   call, because it no longer exists once that process exits.
-///
-/// Requirements:
-///   - Node.js must be installed and reachable (set JavascriptManager.NodeExecutablePath if
-///     it's not on PATH).
-///   - Target framework .NET 6.0 or later.
-///
-/// Note on security:
-///   This class isolates *state* between calls, which is a strong guarantee because
-///   every call gets its own OS process and its own V8 context. It is NOT a security
-///   sandbox for running untrusted/hostile code: the executed function has access to
-///   Node's built-in modules via require() (filesystem, network, etc.) inside its own
-///   process. If you need to run code from an untrusted source, remove `require` from
-///   the sandbox object in BootstrapScript below and/or run the process under an
-///   OS-level restricted user or container.
 /// </summary>
 public static class JavascriptManager
 {
@@ -50,6 +18,12 @@ public static class JavascriptManager
 
     /// <summary>Maximum time a single Run call is allowed to take before the process is killed.</summary>
     public static TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// Event/Action triggered whenever console.log (or stderr) output is received from Node.js.
+    /// Defaults to printing directly to the C# Console.
+    /// </summary>
+    public static Action<string>? OnLog { get; set; } = Console.WriteLine;
 
     private static readonly string BootstrapScriptPath;
 
@@ -66,17 +40,13 @@ public static class JavascriptManager
     }
 
     /// <summary>
-    /// Synchronously runs <paramref name="code"/> (which must evaluate to a JS function,
-    /// e.g. "function(a,b){...}" or "(a,b) =&gt; ...") in a fresh, isolated Node.js
-    /// process, calling it with <paramref name="args"/>, and returns the
-    /// JSON-serialized result.
+    /// Synchronously runs <paramref name="code"/> and returns the JSON-serialized result.
     /// </summary>
     public static string Run(string code, params object[] args)
         => RunAsync(code, args).GetAwaiter().GetResult();
 
     /// <summary>
-    /// Same as <see cref="Run"/> but deserializes the result directly into
-    /// <typeparamref name="T"/>. Call as JavascriptManager.Run&lt;int&gt;(code, args).
+    /// Same as <see cref="Run"/> but deserializes the result directly into <typeparamref name="T"/>.
     /// </summary>
     public static T Run<T>(string code, params object[] args)
     {
@@ -114,7 +84,16 @@ public static class JavascriptManager
         var stderr = new StringBuilder();
 
         process.OutputDataReceived += (_, e) => { if (e.Data != null) stdout.Append(e.Data); };
-        process.ErrorDataReceived += (_, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
+        
+        // FIX: Capture stderr in real-time and pass it to the OnLog handler
+        process.ErrorDataReceived += (_, e) => 
+        { 
+            if (e.Data != null) 
+            {
+                stderr.AppendLine(e.Data);
+                OnLog?.Invoke(e.Data); 
+            }
+        };
 
         try
         {
@@ -194,8 +173,6 @@ public static class JavascriptManager
         public string Stack { get; set; }
     }
 
-    // Fresh V8 context per invocation (vm.createContext), inside a fresh OS process per
-    // call -- so functions/variables from one Run() are never visible to another.
     private const string BootstrapScript = @"
 const vm = require('vm');
 
@@ -208,8 +185,6 @@ const parsed = JSON.parse(inputData);
 const code = parsed.code;
 const args = parsed.args || [];
 
-// Route console output to stderr, not stdout: stdout is reserved for the
-// single JSON result line, and console.log writing there would corrupt it.
 const util = require('util');
 const safeConsole = {
   log: (...a) => process.stderr.write(util.format(...a) + '\n'),
@@ -257,7 +232,6 @@ process.stdout.write(JSON.stringify({
 ";
 }
 
-/// <summary>Thrown when the executed JavaScript throws, or the code fails to evaluate to a function.</summary>
 public sealed class JavaScriptExecutionException : Exception
 {
     public string JavaScriptStack { get; }
