@@ -97,11 +97,15 @@ This program needs access to your temp directory so if for some reason you don't
 Java is being run by wrapping the GraalVM generated DLL files in a C wrapper (to attempt to avoid collisions), but now runs into a separate issue of having its input types being put to the same limitations as C
 
 ### Running The Compiler
-The way the compiler works is by parsing in two arguments for your build and source directory:
 
+You run the compiler with these command line arguments.
 ```bash
+    # MANDATORY ARGUMENTS
     -s, --source => "this is directory that contains all your .v (veneer) files"
     -b, --build => "this is directory where the executable and DLL files get compiled"
+    
+    # OPTIONAL COMMANDS
+    -n, --name => "the output name of the executable; default: main"
 ```
 
 Now all you have to do is run the compiler in a terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
