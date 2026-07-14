@@ -794,8 +794,9 @@ public class Transpiler
                     File.Delete(Path.Join(buildDir, "VeneerTooth.class"));
                     File.Delete(javaCFile);
                     File.Delete(headerFile);
-                    string dynHeader = Path.Join(buildDir, "VeneerTooth.class_dynamic.h");
-                    if (File.Exists(dynHeader)) File.Delete(dynHeader);
+                    File.Delete(Path.Join(buildDir, "graal_isolate.h"));
+                    File.Delete(Path.Join(buildDir, "graal_isolate_dynamic.h"));
+                    File.Delete(Path.Join(buildDir, "VeneerTooth.class_dynamic.h"));
                 }
 
                 return gccSucceeded ? javaOutputFile : default(string);

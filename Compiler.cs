@@ -24,11 +24,19 @@ public static class Compiler
     public static string? CompileFolder(
         string sourceFolder,
         string buildDirectory,
+        string dllDirectory,
         string? projectName = "main",
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null)
     {
+
+        if (!Directory.Exists(dllDirectory))
+        {
+            Console.WriteLine($"Dll directory doesn't exist: {dllDirectory}");
+            return null;
+        }
+
         if (!Directory.Exists(sourceFolder))
         {
             Console.WriteLine($"Source folder not found: {sourceFolder}");
@@ -97,7 +105,7 @@ public static class Compiler
                         <PackageReference Include=""pythonnet"" Version=""3.1.0""/>
                     </ItemGroup>
                     <ItemGroup>
-                      <Content Include=""{GetAbsoluteMSBuildIncludeString(buildDirectory)}"">
+                      <Content Include=""{GetAbsoluteMSBuildIncludeString(dllDirectory)}"">
                         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
                         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
                         
@@ -107,7 +115,7 @@ public static class Compiler
                 </Project>
             ");
 
-            Directory.CreateDirectory(buildDirectory);
+            Directory.CreateDirectory(dllDirectory);
 
             var psi = new ProcessStartInfo("dotnet")
             {

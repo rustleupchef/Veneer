@@ -13,25 +13,34 @@ internal class Program
 
     static void RunOptions(Options opts)
     {
-        Directory.Delete(opts.BuildDirectory, true);
+        if (Directory.Exists(opts.BuildDirectory))
+            Directory.Delete(opts.BuildDirectory, true);
         Directory.CreateDirectory(opts.BuildDirectory);
         
         string[] files = Directory.GetFiles(opts.SourceDirectory, "*.v");
-        string tempDir = Path.Combine(Path.GetTempPath(), "veneer-code-" + Guid.NewGuid());
-        Directory.CreateDirectory(tempDir);
+        string tempSourceDir = Path.Combine(Path.GetTempPath(), "veneer-code-" + Guid.NewGuid());
+        string tempDLLBuildDir = Path.Combine(Path.GetTempPath(), "veneer-build-foreign-code-" + Guid.NewGuid());
+        Directory.CreateDirectory(tempSourceDir);
+        Directory.CreateDirectory(tempDLLBuildDir);
 
         foreach (string file in files)
         {
             List<Tokens.Token> tokens = Lexer.LexText(File.ReadAllText(file));
-            Transpiler transpiler = new Transpiler(tokens, opts.BuildDirectory);
+            Transpiler transpiler = new Transpiler(tokens, tempDLLBuildDir);
             string result = transpiler.Transpile();
             string name = Path.GetFileNameWithoutExtension(file);
-            File.WriteAllText(Path.Combine(tempDir, $"{name}.cs"), result);
+            File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
         }
 
-        Compiler.CompileFolder(sourceFolder: tempDir, buildDirectory: Path.GetFullPath(opts.BuildDirectory));
+        string executablePath = Compiler.CompileFolder(
+            sourceFolder: tempSourceDir, 
+            buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
+            dllDirectory: Path.GetFullPath(tempDLLBuildDir));
         
-        Directory.Delete(tempDir, true);
+        Directory.Delete(tempSourceDir, true);
+        Directory.Delete(tempDLLBuildDir, true);
+        
+        Console.WriteLine($"Executable path: {executablePath}");
     }
 
     static void HandleParserError(IEnumerable<Error> errs)
