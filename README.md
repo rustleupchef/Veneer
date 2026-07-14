@@ -55,7 +55,7 @@ tooth<void> foo (int bar) language("C") =>
 
 The tooth function acts very different compared to the base function of this language
 
-Valid Language Strings (Not case sensitive):
+Valid Language Strings (Not case-sensitive):
 - CPP, C++ 
 - Csharp
 - Java
@@ -70,16 +70,17 @@ After the => token will be listed your opening tag; this tag is one that the use
 The only valid characters for the opening tag identifier are:
 - Alpha
 - Digits
-- |, {, [, _
+- |, {, [, (, _
 
 These are the only characters that will be recognized for the opening tage.
 
 Generally your opening tag will be equivalent to your closing tag there are a few symbols that don't do such
 
-| Opening Tag | Closing Tag  |
-|-------------|--------------| 
-| {           | }            |
-| [           | ]            |
+| Opening Tag | Closing Tag |
+|-------------|-------------| 
+| {           | }           |
+| [           | ]           |
+| (           | )           |
 
 These characters will only swap to their mirrors if they make the entirety of the composition of the opening tag; otherwise, the opening tags and closing tags will simply be the same
 
