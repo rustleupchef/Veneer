@@ -20,7 +20,7 @@ The Veneer Compiler sadly doesn't bundle the necessary compilers and software fo
 
 Requirements:
 - An installation of python on a typical path install
-- A graaval Java install (must be primary Java install at least on terminal session where veneer is ran)
+- A GraalVM Java install (must be the primary Java installation at least on terminal session where veneer is ran)
 - GCC and G++ (regardless of the operating system)
 - GO compiler
 - Rust compiler
@@ -86,15 +86,15 @@ These characters will only swap to their mirrors if they make the entirety of th
 Understand that these opening tags can not be written inside your foreign code block in any form or fashion, so attempt to pick a tag that you can guarantee will not show up in any substring of your foreign code block.
 
 ### Disclaimers
-There are heavy limitations on the uses of foreign languages, and many more to note.
+There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
+
+Because this language makes heavy use of P invoke and DLL Import it does not have to capabilities to handle complex data types quite yet and those will need to be handled via byte arrays and serialized json otherwise will be impossible to share.
 
 None of teeth (foreign language functions) have access to functions out of their scope with the sole exception of csharp which functions as a regular veneer function.
 
-This programming language is designed to compile down to one file, but because of the JVE it was very difficult to make a clean implementation for Java; this resulted in the current architecture of the language desinging a C wrapper for the Java exported DLL, but this C wrapper is by default using a static reference to the Java DLL meaning that moving or deleting the Java DLL in anyware is destructive for the program, this makes Java a terrible use case for any code that will be used outside your computer (so just don't).
+This program needs access to your temp directory so if for some reason you don't have one, or you don't give the program access to it then you will not be able to run the compiler.
 
-Javascript in the current moment is running using Jint; Jint doesn't have access to nearly any of the tools that are found in nodejs making javascript's implementation closer to obsolete than any of the other languages, and because the typescript handling uses the same library; typescript is also far behind.
-
-This program needs access to your temp directory so if for some reason you don't have one or you don't give the program access to it then you will not be able to run the compiler.
+Java is being run by wrapping the GraalVM generated DLL files in a C wrapper (to attempt to avoid collisions), but now runs into a separate issue of having its input types being put to the same limitations as C
 
 ### Running The Compiler
 The way the compiler works is by parsing in two arguments for your build and source directory:
@@ -104,4 +104,4 @@ The way the compiler works is by parsing in two arguments for your build and sou
     -b, --build => "this is directory where the executable and DLL files get compiled"
 ```
 
-Now all you have to do is run the compiler in an terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
+Now all you have to do is run the compiler in a terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
