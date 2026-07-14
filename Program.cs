@@ -35,7 +35,8 @@ internal class Program
         string executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
-            dllDirectory: Path.GetFullPath(tempDLLBuildDir));
+            dllDirectory: Path.GetFullPath(tempDLLBuildDir),
+            projectName: opts.ExecutableName);
         
         Directory.Delete(tempSourceDir, true);
         Directory.Delete(tempDLLBuildDir, true);

@@ -25,7 +25,7 @@ public static class Compiler
         string sourceFolder,
         string buildDirectory,
         string dllDirectory,
-        string? projectName = "main",
+        string? projectName = null,
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null)
@@ -91,6 +91,7 @@ public static class Compiler
                 ? "\n    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>"
                 : "";
 
+            projectName ??= "main";
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
                 <Project Sdk=""Microsoft.NET.Sdk"">

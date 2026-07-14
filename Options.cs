@@ -9,4 +9,7 @@ public class Options
     
     [Option('s', "source", Required = true, HelpText = "Source Directory For Veneer Source Code")]
     public string SourceDirectory { get; set; }
+    
+    [Option('n', "name", Required = false, HelpText = "Name of the Veneer Executable")]
+    public string ExecutableName { get; set; }
 }
