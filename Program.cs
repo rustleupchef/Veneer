@@ -22,11 +22,14 @@ internal abstract class Program
         string tempDllBuildDir = Path.Combine(Path.GetTempPath(), "veneer-build-foreign-code-" + Guid.NewGuid());
         Directory.CreateDirectory(tempSourceDir);
         Directory.CreateDirectory(tempDllBuildDir);
+        
+        Dictionary<string, LanguageConfig.Config>? configs = LanguageConfig.DeserializeConfig(opts.ConfigFile);
+        configs ??= new Dictionary<string, LanguageConfig.Config>();
 
         foreach (string file in files)
         {
             List<Tokens.Token> tokens = Lexer.LexText(File.ReadAllText(file));
-            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir);
+            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs);
             string result = transpiler.Transpile();
             string name = Path.GetFileNameWithoutExtension(file);
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);

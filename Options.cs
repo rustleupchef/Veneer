@@ -12,4 +12,7 @@ public class Options
     
     [Option('n', "name", Required = false, HelpText = "Name of the Veneer Executable")]
     public string ExecutableName { get; set; }
+    
+    [Option('c', "config", Required = false, HelpText = "Configuration Json File for Veneer Build")]
+    public string ConfigFile { get; set; }
 }

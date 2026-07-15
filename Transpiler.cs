@@ -10,6 +10,7 @@ public class Transpiler
     private readonly List<Tokens.Token> _tokens;
     private int _index = 0;
     private string _build;
+    private Dictionary<string, LanguageConfig.Config> _configs;
     private List<Tokens.Token> toothModifiers = new();
 
     // Fully-parsed user-defined classes, collected separately from the
@@ -25,10 +26,11 @@ public class Transpiler
         Tokens.TokenType.Async, Tokens.TokenType.Virtual, Tokens.TokenType.Override, Tokens.TokenType.Sealed
     };
 
-    public Transpiler(List<Tokens.Token> tokens, string build = "/build")
+    public Transpiler(List<Tokens.Token> tokens, string build, Dictionary<string, LanguageConfig.Config> configs)
     {
         _tokens = tokens;
         _build = build;
+        _configs = configs;
     }
 
     // Helper to look ahead without consuming
@@ -510,6 +512,11 @@ public class Transpiler
     // Generate library file for languages that support DLLImport utility of c#
     private string CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
     {
+        LanguageConfig.Config config = _configs.ContainsKey(language) 
+            ? _configs[language] 
+            : new LanguageConfig.Config("", "");
+        string imports = config.imports;
+        
         string name = Guid.NewGuid().ToString();
         switch (language)
         {
@@ -525,11 +532,11 @@ public class Transpiler
                                     #include <iostream>
                                     #include <string>
                                     """;
-                string imports = language == "C" ?  cImports : cppImports;
+                string finalImports = language == "C" ?  cImports : cppImports;
                 string fileType = language == "C" ? ".c" : ".cpp";
                 
                 string cFile = Path.Join(_build, $"{name}{fileType}");
-                File.WriteAllText(cFile, $"{imports}\n{function}");
+                File.WriteAllText(cFile, $"{finalImports}\n{imports}\n{function}");
                 string cOutputFile = Path.Join(_build, $"{name}");
 
                 string arguments = "";
@@ -581,7 +588,7 @@ public class Transpiler
                 return cOutputFile;
             case "RUST":
                 string rustFile = Path.Join(_build, $"{name}.rs");
-                File.WriteAllText(rustFile, function);
+                File.WriteAllText($"{imports}\n{rustFile}", function);
                 string rustOutputFile = Path.Join(_build, $"{name}");
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -631,7 +638,7 @@ public class Transpiler
                                    import "C"
                                    """;
                 string goMainFunction = "func main() {}";
-                File.WriteAllText(goFile, $"{goImports}\n{function}\n\n{goMainFunction}");
+                File.WriteAllText(goFile, $"{goImports}\n{imports}\n{function}\n\n{goMainFunction}");
                 string goOutputFile = Path.Join(_build, $"{name}");
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -681,12 +688,7 @@ public class Transpiler
                                      import org.graalvm.nativeimage.c.function.CEntryPoint;
                                      """;
                 string javaClassWrapper = "public final class VeneerTooth";
-                File.WriteAllText(javaFile, $"{javaImports}\n{javaClassWrapper}{{{function}}}");
-
-                string extension = "";
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) extension = "dll";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) extension = "so";
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) extension = "dylib";
+                File.WriteAllText(javaFile, $"{javaImports}\n{imports}\n{javaClassWrapper}{{{function}}}");
 
                 // 1. Run javac relatively inside buildDir
                 ProcessStartInfo javaInfo = new ProcessStartInfo
