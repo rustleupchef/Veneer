@@ -53,6 +53,8 @@ public class Transpiler
 
     public string Transpile()
     {
+        string imports = _configs.ContainsKey("CSHARP") ? _configs["CSHARP"].imports : "";
+        
         var sb = new StringBuilder();
         
         // Phase 4 Blueprint: Generate a high-performance C# template class
@@ -62,6 +64,7 @@ public class Transpiler
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Runtime.InteropServices;");
+        sb.AppendLine(imports);
         sb.AppendLine("namespace VeneerRuntime;");
         sb.AppendLine();
 
