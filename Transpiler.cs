@@ -881,7 +881,7 @@ public class Transpiler
                 string pyReturn = returnType == "void" ? "object" : returnType;
                 StringBuilder pyBody = new StringBuilder();
                 pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
-                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(pythonBody)}, {pyParams});");
+                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(pythonBody)}, {JsonSerializer.Serialize(name)}, {pyParams});");
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
             default:

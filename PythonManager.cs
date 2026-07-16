@@ -123,17 +123,15 @@ public sealed class PythonManager : IDisposable
     /// <typeparam name="T">Expected C# return type.</typeparam>
     /// <param name="rawPythonCode">The standalone Python function as a raw string.</param>
     /// <param name="args">Parameters to pass into the Python function.</param>
-    public T Execute<T>(string rawPythonCode, params object[] args)
+    public T Execute<T>(string rawPythonCode, string functionName, params object[] args)
     {
-        // 1. Auto-detect the function name from the string definition
-        string functionName = ExtractFunctionName(rawPythonCode);
 
-        // 2. Safely acquire the Global Interpreter Lock (GIL)
+        // 1. Safely acquire the Global Interpreter Lock (GIL)
         using (Py.GIL())
         {
             try
             {
-                // 3. Create an isolated scope/context for this execution
+                // 2. Create an isolated scope/context for this execution
                 using (PyModule scope = Py.CreateScope())
                 {
                     // Compile and load the raw string into our local scope
@@ -166,19 +164,6 @@ public sealed class PythonManager : IDisposable
                 throw new Exception($"Python Runtime Error: {ex.Message}", ex);
             }
         }
-    }
-
-    /// <summary>
-    /// Helper method using Regex to extract the name of the function being passed.
-    /// </summary>
-    private string ExtractFunctionName(string code)
-    {
-        Match match = Regex.Match(code, @"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(");
-        if (match.Success)
-        {
-            return match.Groups[1].Value;
-        }
-        throw new ArgumentException("Could not detect a valid Python function definition (e.g., 'def function_name(...):') in the provided code string.");
     }
 
     public void Dispose()
