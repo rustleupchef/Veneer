@@ -86,6 +86,22 @@ These characters will only swap to their mirrors if they make the entirety of th
 
 Understand that these opening tags can not be written inside your foreign code block in any form or fashion, so attempt to pick a tag that you can guarantee will not show up in any substring of your foreign code block.
 
+### Config File
+the config file is handled like a simple json structure with a very basic structure
+```json
+{
+  "[LANGUAGE_NAME]" : {
+    "imports" : "[LEADING_STRING]",
+    "libraries" : "[CUSTOM_STRING_FORMAT]"
+  }
+}
+```
+
+you simply make a json object that has attributes titled after the language they are for (note that these must all be upper case, and you must match all your veneer tooth names to the ones listed in the file (eg. cpp in tooth files and "CPP" in config.json))
+these attributes must be connected a json object that has attributes "imports" and libraries
+- imports: this is the string that will be typically appended at the top of files and are imports (eg. "#include <math.h>", etc)
+- libraries: this is a string that will be parsed and formatted uniquely based on the language  (it hasn't been properly implemented yet)
+
 ### Disclaimers
 There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
 
@@ -107,6 +123,7 @@ You run the compiler with these command line arguments.
     
     # OPTIONAL COMMANDS
     -n, --name => "the output name of the executable; default: main"
+    -c, --config => "the is the file directory that contains the config for compiler"
 ```
 
 Now all you have to do is run the compiler in a terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
