@@ -813,6 +813,7 @@ public class Transpiler
     // Generate c# code for outliers out of languages
     private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
     {
+        string imports = _configs.ContainsKey(language) ? _configs[language].imports : "";
         bool isVoid = returnType.Trim().ToLower() == "void";
         string leadingString = isVoid ? "" : $"return ({returnType})";
 
@@ -869,6 +870,7 @@ public class Transpiler
                 File.Delete(typescriptFile);
                 return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name);
             case "PYTHON":
+                string pythonBody = $"{imports}\n{function}";
                 List<string> pyParamToks = Lexer
                     .LexText(parameters)
                     .Where(n => n.Type == Tokens.TokenType.Identifier)
@@ -879,7 +881,7 @@ public class Transpiler
                 string pyReturn = returnType == "void" ? "object" : returnType;
                 StringBuilder pyBody = new StringBuilder();
                 pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
-                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(function)}, {pyParams});");
+                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(pythonBody)}, {pyParams});");
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
             default:
