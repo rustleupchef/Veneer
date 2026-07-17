@@ -922,12 +922,17 @@ public class Transpiler
                                   ensure_isolate();
                                   {leadingBodyString}{functionName}X(thread, {string.Join(", ", paramToks)});
                                   """;
+            string osSpecificLeadingText = "";
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                osSpecificLeadingText = "__delspec(dllexport) ";
+            }
             cWrapper = $$"""
                          #include "VeneerTooth.class.h"
                          #include <stdio.h>
                          static graal_isolatethread_t *thread = NULL;
                          
-                         static void ensure_isolate(void) {
+                         {{osSpecificLeadingText}}static void ensure_isolate(void) {
                              if (thread == NULL) {
                                  graal_isolate_t *isolate = NULL;
                                  graal_create_isolate(NULL, &isolate, &thread);
