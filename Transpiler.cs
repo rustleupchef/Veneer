@@ -836,10 +836,11 @@ public class Transpiler
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
+                string typescriptBody = $"{imports}\n{function}";
                 string uuidName = Guid.NewGuid().ToString();
                 string typescriptFile = Path.Join(_build, $"{uuidName}.ts");
                 string javascriptFile = Path.Join(_build, $"{uuidName}.js");
-                File.WriteAllText(typescriptFile, function);
+                File.WriteAllText(typescriptFile, typescriptBody);
 
                 ProcessStartInfo typescriptInfo = new ProcessStartInfo
                 {
