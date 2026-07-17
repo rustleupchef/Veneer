@@ -174,62 +174,86 @@ public static class JavascriptManager
     }
 
     private const string BootstrapScript = @"
-const vm = require('vm');
+        const fs = require('fs');
+        const path = require('path');
+        const { createRequire } = require('module');
+        const { pathToFileURL } = require('url');
 
-let inputData = '';
-process.stdin.setEncoding('utf8');
-process.stdin.on('data', (chunk) => { inputData += chunk; });
-process.stdin.on('end', async () => {
-try {
-const parsed = JSON.parse(inputData);
-const code = parsed.code;
-const args = parsed.args || [];
+        let inputData = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => { inputData += chunk; });
+        process.stdin.on('end', async () => {
+            let tempFilePath = null;
+            try {
+                const parsed = JSON.parse(inputData);
+                const code = parsed.code;
+                const args = parsed.args || [];
 
-const util = require('util');
-const safeConsole = {
-  log: (...a) => process.stderr.write(util.format(...a) + '\n'),
-  info: (...a) => process.stderr.write(util.format(...a) + '\n'),
-  warn: (...a) => process.stderr.write(util.format(...a) + '\n'),
-  error: (...a) => process.stderr.write(util.format(...a) + '\n'),
-  debug: (...a) => process.stderr.write(util.format(...a) + '\n')
-};
+                // Redirect console logs to stderr so stdout is strictly for our JSON interop response
+                const util = require('util');
+                global.console = {
+                    log: (...a) => process.stderr.write(util.format(...a) + '\n'),
+                    info: (...a) => process.stderr.write(util.format(...a) + '\n'),
+                    warn: (...a) => process.stderr.write(util.format(...a) + '\n'),
+                    error: (...a) => process.stderr.write(util.format(...a) + '\n'),
+                    debug: (...a) => process.stderr.write(util.format(...a) + '\n')
+                };
 
-const sandbox = {
-  console: safeConsole,
-  require: require,
-  Buffer: Buffer,
-  setTimeout: setTimeout,
-  clearTimeout: clearTimeout,
-  setInterval: setInterval,
-  clearInterval: clearInterval
-};
-const context = vm.createContext(sandbox);
+                // 1. Create a unique .mjs file name in the current working directory.
+                // Operating in process.cwd() ensures node_modules can be resolved naturally!
+                const tempFileName = `v_tmp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.mjs`;
+                tempFilePath = path.join(process.cwd(), tempFileName);
 
-const script = new vm.Script('(' + code + ')');
-const fn = script.runInContext(context, { timeout: 5000 });
+                // 2. Setup a global 'require' instance tied to this path so they can mix imports and requires
+                global.require = createRequire(tempFilePath);
 
-if (typeof fn !== 'function') {
-  throw new Error('Provided code must evaluate to a function.');
-}
+                let finalCode = code.trim();
+                
+                // 3. Smart-wrap checking for your interop compiler output:
+                // If it doesn't have an explicit export default, assume it's a legacy function expression
+                if (!finalCode.includes('export default')) {
+                    if (finalCode.startsWith('(') || finalCode.startsWith('function') || finalCode.startsWith('async')) {
+                        finalCode = `export default ${finalCode};`;
+                    } else {
+                        // If they wrote a standard sequential block of code, wrap it as a function body
+                        finalCode = `export default async function(...args) {\n${finalCode}\n}`;
+                    }
+                }
 
-let result = fn.apply(null, args);
-if (result && typeof result.then === 'function') {
-  result = await result;
-}
+                fs.writeFileSync(tempFilePath, finalCode, 'utf8');
 
-process.stdout.write(JSON.stringify({
-  success: true,
-  result: result === undefined ? null : result
-}));
-} catch (err) {
-process.stdout.write(JSON.stringify({
-  success: false,
-  error: err && err.message ? err.message : String(err),
-  stack: err && err.stack ? err.stack : null
-}));
-}
-});
-";
+                // 4. Dynamically import the file natively using its file:// URL format
+                const userModule = await import(pathToFileURL(tempFilePath).href);
+                const fn = userModule.default;
+
+                if (typeof fn !== 'function') {
+                    throw new Error('Provided foreign code did not export or resolve to a default function.');
+                }
+
+                // 5. Run the function passing down the interop arguments
+                let result = fn.apply(null, args);
+                if (result && typeof result.then === 'function') {
+                    result = await result;
+                }
+
+                process.stdout.write(JSON.stringify({
+                    success: true,
+                    result: result === undefined ? null : result
+                }));
+            } catch (err) {
+                process.stdout.write(JSON.stringify({
+                    success: false,
+                    error: err && err.message ? err.message : String(err),
+                    stack: err && err.stack ? err.stack : null
+                }));
+            } finally {
+                // 6. Housekeeping: Ensure the temporary module file is deleted
+                if (tempFilePath && fs.existsSync(tempFilePath)) {
+                    try { fs.unlinkSync(tempFilePath); } catch (_) {}
+                }
+            }
+        });
+    ";
 }
 
 public sealed class JavaScriptExecutionException : Exception

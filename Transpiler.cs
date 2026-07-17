@@ -483,10 +483,10 @@ public class Transpiler
                 return $"def {functionName}({formattedArgs}):\n{body}";
                 
             case "JAVASCRIPT":
-                return $"function {functionName}({formattedArgs}) {{\n{body}\n}}";
+                return $"export default function {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "TYPESCRIPT":
-                return $"function {functionName}({formattedArgs}): {retTypeStr} {{\n{body}\n}}";
+                return $"export default function {functionName}({formattedArgs}): {retTypeStr} {{\n{body}\n}}";
                 
             case "CSHARP":
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
@@ -811,15 +811,16 @@ public class Transpiler
     }
     
     // Generate c# code for outliers out of languages
-    private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name)
+    private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name, bool appendImports = true)
     {
-        string imports = _configs.ContainsKey(language) ? _configs[language].imports : "";
+        string imports = _configs.ContainsKey(language) ? appendImports ? _configs[language].imports : "" : "";
         bool isVoid = returnType.Trim().ToLower() == "void";
         string leadingString = isVoid ? "" : $"return ({returnType})";
 
         switch (language)
         {
             case "JAVASCRIPT":
+                string javascriptBody = $"{imports}\n{function}";
                 string embeddedString = isVoid ? "" : $"<{returnType}>";
                 List<string> jsParamsToks = Lexer
                     .LexText(parameters)
@@ -831,7 +832,7 @@ public class Transpiler
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(function)}, {jsParams});");
+                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(javascriptBody)}, {jsParams});");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
@@ -868,7 +869,7 @@ public class Transpiler
                 string output = File.ReadAllText(javascriptFile);
                 File.Delete(javascriptFile);
                 File.Delete(typescriptFile);
-                return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name);
+                return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name, false);
             case "PYTHON":
                 string pythonBody = $"{imports}\n{function}";
                 List<string> pyParamToks = Lexer
