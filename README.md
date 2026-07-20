@@ -91,8 +91,8 @@ the config file is handled like a simple json structure with a very basic struct
 ```json
 {
   "[LANGUAGE_NAME]" : {
-    "imports" : "[LEADING_STRING]",
-    "libraries" : "[CUSTOM_STRING_FORMAT]"
+    "imports" : ["[LEADING_STRINGS]"],
+    "libraries" : ["[CUSTOM_STRINGS_FORMAT]"]
   }
 }
 ```
