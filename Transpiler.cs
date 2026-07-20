@@ -53,7 +53,7 @@ public class Transpiler
 
     public string Transpile()
     {
-        string imports = _configs.ContainsKey("CSHARP") ? _configs["CSHARP"].imports : "";
+        string imports = _configs.ContainsKey("CSHARP") ? string.Join('\n', _configs["CSHARP"].imports) : "";
         
         var sb = new StringBuilder();
         
@@ -517,8 +517,8 @@ public class Transpiler
     {
         LanguageConfig.Config config = _configs.ContainsKey(language) 
             ? _configs[language] 
-            : new LanguageConfig.Config("", "");
-        string imports = config.imports;
+            : new LanguageConfig.Config([], []);
+        string imports = string.Join("\n", config.imports);
         
         string name = Guid.NewGuid().ToString();
         switch (language)
@@ -813,7 +813,11 @@ public class Transpiler
     // Generate c# code for outliers out of languages
     private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name, bool appendImports = true)
     {
-        string imports = _configs.ContainsKey(language) ? appendImports ? _configs[language].imports : "" : "";
+        string imports = _configs.ContainsKey(language) 
+            ? appendImports 
+                ? string.Join('\n', _configs[language].imports) 
+                : "" 
+            : "";
         string functionBody = $"{imports}\n{function}";
         bool isVoid = returnType.Trim().ToLower() == "void";
         string leadingString = isVoid ? "" : $"return ({returnType})";

@@ -101,9 +101,10 @@ these attributes must be connected a json object that has attributes "imports" a
 
 #### Imports
 The imports section will be handled in the same syntax of the language; that being, when your write the text for the imports it will be directly pasted in between the standard imports and the foreign function that you created.
+You simply write every line of imports you desire in your code in a list of strings.
 
 #### Libraries
-This string is one that is custom to the language where there is no actualy standard notation
+This a list of strings that has unique structure for each individual language to be able to include libraries for the supported languages.
 
 - Python: To install usable packages for python all that needs to be done is to create a VENV that contains all the packages that you want and use that VENV in your terminal session when running your veneer application.
 
