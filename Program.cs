@@ -35,11 +35,13 @@ internal abstract class Program
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
         }
 
+        string[] csharpLibraries = configs.ContainsKey("csharp") ? configs["csharp"].libraries : [];
         string? executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
             dllDirectory: Path.GetFullPath(tempDllBuildDir),
-            projectName: opts.ExecutableName);
+            projectName: opts.ExecutableName,
+            libraries: csharpLibraries);
         
         Directory.Delete(tempSourceDir, true);
         Directory.Delete(tempDllBuildDir, true);
