@@ -96,11 +96,18 @@ the config file is handled like a simple json structure with a very basic struct
   }
 }
 ```
-
 you simply make a json object that has attributes titled after the language they are for (note that these must all be upper case, and you must match all your veneer tooth names to the ones listed in the file (eg. cpp in tooth files and "CPP" in config.json))
 these attributes must be connected a json object that has attributes "imports" and libraries
-- imports: this is the string that will be typically appended at the top of files and are imports (eg. "#include <math.h>", etc)
-- libraries: this is a string that will be parsed and formatted uniquely based on the language  (it hasn't been properly implemented yet)
+
+#### Imports
+The imports section will be handled in the same syntax of the language; that being, when your write the text for the imports it will be directly pasted in between the standard imports and the foreign function that you created.
+
+#### Libraries
+This string is one that is custom to the language where there is no actualy standard notation
+
+- Python: To install usable packages for python all that needs to be done is to create a VENV that contains all the packages that you want and use that VENV in your terminal session when running your veneer application.
+
+
 
 ### Disclaimers
 There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
