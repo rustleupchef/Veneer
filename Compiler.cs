@@ -28,7 +28,8 @@ public static class Compiler
         string? projectName = null,
         bool selfContained = true,
         bool singleFile = true,
-        string? runtimeIdentifier = null)
+        string? runtimeIdentifier = null,
+        string[]? libraries = null)
     {
 
         if (!Directory.Exists(dllDirectory))
@@ -92,6 +93,7 @@ public static class Compiler
                 : "";
 
             projectName ??= "main";
+            libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
                 <Project Sdk=""Microsoft.NET.Sdk"">
@@ -104,6 +106,7 @@ public static class Compiler
                     </PropertyGroup>
                     <ItemGroup>
                         <PackageReference Include=""pythonnet"" Version=""3.1.0""/>
+                        {string.Join("\n\t\t\t", libraries)}
                     </ItemGroup>
                     <ItemGroup>
                       <Content Include=""{GetAbsoluteMSBuildIncludeString(dllDirectory)}"">

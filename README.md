@@ -107,7 +107,7 @@ You simply write every line of imports you desire in your code in a list of stri
 This a list of strings that has unique structure for each individual language to be able to include libraries for the supported languages.
 
 - Python: To install usable packages for python all that needs to be done is to create a VENV that contains all the packages that you want and use that VENV in your terminal session when running your veneer application.
-
+- C#: To install usable package for C# you need to make the list of string fro the libraries attribute contain a list of package reference blocks seen in that of an actual .csproj file
 
 
 ### Disclaimers
