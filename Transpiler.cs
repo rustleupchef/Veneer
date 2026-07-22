@@ -907,6 +907,16 @@ public class Transpiler
     // Translates: Foregin Code Block to c# code, handling the interop layer
     private string ParseChip(string language, string parameters, string body, string returnType, string functionName)
     {
+        if (language == "CSHARP")
+        {
+            bool isAsync = false;
+            foreach (var token in functionModifiers)
+                if (token.Type == Tokens.TokenType.Async)
+                    isAsync = true;
+            string taskInsert = returnType == "void" ? "" : $"<{returnType}>";
+            returnType = isAsync ? $"Task{taskInsert}" : returnType;
+        }
+        
         language = language.ToUpper().TrimStart('\"').TrimEnd('\"');
         
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
