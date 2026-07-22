@@ -1094,6 +1094,7 @@ public class Transpiler
             case Tokens.TokenType.Virtual:
             case Tokens.TokenType.Override:
             case Tokens.TokenType.Sealed:
+            case Tokens.TokenType.Await:
                 return token.Value + " ";
             case Tokens.TokenType.Assign:
             case Tokens.TokenType.Plus:

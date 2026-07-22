@@ -34,7 +34,8 @@ public class Lexer
         { "async", Tokens.TokenType.Async },
         { "virtual", Tokens.TokenType.Virtual },
         { "override", Tokens.TokenType.Override },
-        { "sealed", Tokens.TokenType.Sealed }
+        { "sealed", Tokens.TokenType.Sealed },
+        { "await", Tokens.TokenType.Await }
     };
 
     // 2. Operators & Punctuation Dictionary: For literal code symbols
