@@ -260,16 +260,16 @@ public class Transpiler
         List<string> baseToks = functionModifiers
             .Select(n => n.Value)
             .ToList();
+        bool isAsync = false;
+        foreach (var token in functionModifiers)
+            if (token.Type == Tokens.TokenType.Async)
+                isAsync = true;
         functionModifiers.Clear();
         
         Consume(Tokens.TokenType.Function, "Expected 'func' keyword.");
         Consume(Tokens.TokenType.LessThan, "Expected '<' following 'func'.");
         
         string returnType = ParseReturnType();
-        bool isAsync = false;
-        foreach (var token in functionModifiers)
-            if (token.Type == Tokens.TokenType.Async)
-                isAsync = true;
         string taskInsert = returnType == "void" ? "" : $"<{returnType}>";
         returnType = isAsync ? $"Task{taskInsert}" : returnType;
         
