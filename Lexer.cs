@@ -75,7 +75,7 @@ public class Lexer
         { "=>", Tokens.TokenType.Arrow }
     };
 
-    public static bool isModifier(Tokens.TokenType type)
+    public static bool IsModifier(Tokens.TokenType type)
     {
         HashSet<Tokens.TokenType> toothModifiers = new()
         {
@@ -295,12 +295,12 @@ public class Lexer
                 tokens.Add(new Tokens.Token(type, lexeme));
                 
                 // Parse modifiers for tooth in to Tooth Modifiers
-                if (type == Tokens.TokenType.Tooth)
+                if (type == Tokens.TokenType.Tooth || type == Tokens.TokenType.Function)
                 {
-                    for (int j = 2; j <= tokens.Count && isModifier(tokens[^j].Type); j++)
+                    for (int j = 2; j <= tokens.Count && IsModifier(tokens[^j].Type); j++)
                     {
                         Tokens.Token token = tokens[^j];
-                        tokens[^j] = token with { Type = Tokens.TokenType.ToothModifier };
+                        tokens[^j] = token with { IsFunctionModifier = true };
                     }
                 }
                 continue;

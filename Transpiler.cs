@@ -11,7 +11,7 @@ public class Transpiler
     private int _index = 0;
     private string _build;
     private Dictionary<string, LanguageConfig.Config> _configs;
-    private List<Tokens.Token> toothModifiers = new();
+    private List<Tokens.Token> functionModifiers = new();
 
     // Fully-parsed user-defined classes, collected separately from the
     // auto-generated Program wrapper so they can be emitted as top-level
@@ -125,9 +125,9 @@ public class Transpiler
 
         // Allow other global expressions to fall back gracefully
         _index++;
-        if (token.Type == Tokens.TokenType.ToothModifier)
+        if (token.IsFunctionModifier)
         {
-            toothModifiers.Add(token);
+            functionModifiers.Add(token);
             return string.Empty;    
         }
         return EmitTokenFormatting(token);
@@ -230,9 +230,9 @@ public class Transpiler
                 break;
             }
 
-            if (token.Type == Tokens.TokenType.ToothModifier)
+            if (token.IsFunctionModifier)
             {
-                toothModifiers.Add(token);
+                functionModifiers.Add(token);
                 continue;
             }
 
@@ -257,10 +257,21 @@ public class Transpiler
     // Translates: func<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) { ... }
     private string ParseFunction()
     {
+        List<string> baseToks = functionModifiers
+            .Select(n => n.Value)
+            .ToList();
+        functionModifiers.Clear();
+        
         Consume(Tokens.TokenType.Function, "Expected 'func' keyword.");
         Consume(Tokens.TokenType.LessThan, "Expected '<' following 'func'.");
         
         string returnType = ParseReturnType();
+        bool isAsync = false;
+        foreach (var token in functionModifiers)
+            if (token.Type == Tokens.TokenType.Async)
+                isAsync = true;
+        string taskInsert = returnType == "void" ? "" : $"<{returnType}>";
+        returnType = isAsync ? $"Task{taskInsert}" : returnType;
         
         Consume(Tokens.TokenType.GreaterThan, "Expected '>' closing return type.");
         
@@ -282,8 +293,8 @@ public class Transpiler
 
         // Grab internal function block execution loops
         string blockBody = ParseBlock();
-
-        return $"{returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
+        
+        return $"{string.Join(" ", baseToks)} {returnType} {funcName}({paramsSb.ToString().Trim()})\n\t{blockBody}\n";
     }
 
     // Parse C# function notation into a function of foreign language for compiling
@@ -901,13 +912,13 @@ public class Transpiler
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
         Console.WriteLine($"Foreign function: {foreignFunction}");
 
-        List<string> baseToks = toothModifiers
+        List<string> baseToks = functionModifiers
                 .Select(n => n.Value)
                 .ToList();
         
         if (language == "CSHARP")
         {
-            toothModifiers.Clear();
+            functionModifiers.Clear();
             return $"{string.Join(" ", baseToks)} {foreignFunction}";
         }
 
@@ -949,16 +960,16 @@ public class Transpiler
         string libraryFile = CompileFunction(foreignFunction, language, cWrapper, entryPoint);
         if (File.Exists(libraryFile))
         {
-            List<string> compiledToks = toothModifiers
+            List<string> compiledToks = functionModifiers
                 .Where(n => n.Value != "static")
                 .Select(n => n.Value)
                 .ToList();
-            toothModifiers.Clear();
+            functionModifiers.Clear();
             return $"[DllImport(\"{Path.GetRelativePath(_build, libraryFile)}\")]" +
                    $"\n{string.Join(" ", compiledToks)} static extern {returnType} {functionName}({parameters});\n";
         }
         
-        toothModifiers.Clear();
+        functionModifiers.Clear();
         return $"{string.Join(" ", baseToks)} {GenerateOutlierCode(language, foreignFunction, parameters, returnType, functionName)}";
     }
 

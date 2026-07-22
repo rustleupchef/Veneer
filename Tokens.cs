@@ -19,7 +19,7 @@ public class Tokens
         Public, Private, Protected, Internal,
         Static, ReadOnly, Const,
         Async, Virtual, Override, Sealed,
-        Tooth, Language, ToothModifier,
+        Tooth, Language,
 
         // Operators
         Plus, Minus, Star, Slash, Modulo,
@@ -32,5 +32,5 @@ public class Tokens
         Comma, SemiColon, Dot, Colon
     }
     
-    public record Token(TokenType Type, string Value);
+    public record Token(TokenType Type, string Value, bool IsFunctionModifier = false);
 }
