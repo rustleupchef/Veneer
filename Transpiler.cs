@@ -298,7 +298,7 @@ public class Transpiler
     }
 
     // Parse C# function notation into a function of foreign language for compiling
-    private string CreateForeignFunction(string parameters, string language, string body, string returnType, string functionName)
+    private string CreateForeignFunction(string parameters, string language, string body, string returnType, string functionName, bool isAsync = false)
     {
         // Local helper to parse structured variable/type information out of individual token streams
         var parseParamFromTokens = (List<Tokens.Token> toks) =>
@@ -500,6 +500,7 @@ public class Transpiler
                 return $"export default function {functionName}({formattedArgs}): {retTypeStr} {{\n{body}\n}}";
                 
             case "CSHARP":
+                retTypeStr = isAsync ? retTypeStr == "void" ? "Task" : $"Task<{retTypeStr}>" : retTypeStr;
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "JAVA":
@@ -909,18 +910,16 @@ public class Transpiler
     {
         language = language.ToUpper().TrimStart('\"').TrimEnd('\"');
         
+        bool isAsync = false;
         if (language == "CSHARP")
         {
-            bool isAsync = false;
             foreach (var token in functionModifiers)
                 if (token.Type == Tokens.TokenType.Async)
                     isAsync = true;
-            string taskInsert = returnType == "void" ? "" : $"<{returnType}>";
-            returnType = isAsync ? $"Task{taskInsert}" : returnType;
         }
         
         
-        string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName);
+        string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName, isAsync);
         Console.WriteLine($"Foreign function: {foreignFunction}");
 
         List<string> baseToks = functionModifiers
