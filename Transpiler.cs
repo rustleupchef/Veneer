@@ -568,6 +568,7 @@ public class Transpiler
             ? _configs[language] 
             : new LanguageConfig.Config([], []);
         string imports = string.Join("\n", config.imports);
+        string[] libraries = config.libraries;
         
         string name = Guid.NewGuid().ToString();
         switch (language)
@@ -575,6 +576,15 @@ public class Transpiler
             case "C++":
             case "CPP":
             case "C":
+                string[] headerFiles = new string[libraries.Length];
+                for (int i = 0; i < headerFiles.Length; i++)
+                {
+                    if (!Path.Exists(libraries[i]))
+                        throw new DirectoryNotFoundException($"Header File {libraries[i]} does not exist");
+                    headerFiles[i] = Path.Combine(_build, Path.GetFileName(libraries[i]));
+                    File.Copy(libraries[i], headerFiles[i], true);
+                }
+                
                 string cImports = """
                                  #include <stdio.h>
                                  #include <stdlib.h>
@@ -636,6 +646,8 @@ public class Transpiler
                 
                 File.Delete(cFile);
                 File.Delete(Path.Join(_build, $"{name}.o"));
+                foreach (string cHeaderFile in headerFiles)
+                    File.Delete(cHeaderFile);
                 
                 return cOutputFile;
             case "RUST":
