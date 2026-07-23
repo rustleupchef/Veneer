@@ -541,8 +541,8 @@ public class Transpiler
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "JAVA":
-                return $"@CEntryPoint(name = \"{functionName}X\")\npublic static {retTypeStr} {functionName}(IsolateThread thread, {formattedArgs}) {{\n{body}\n}}";
-                
+                string argsComma = formattedArgs.Length > 0 ? ", " : string.Empty;
+                return $"@CEntryPoint(name = \"{functionName}X\")\npublic static {retTypeStr} {functionName}(IsolateThread thread{argsComma}{formattedArgs}) {{\n{body}\n}}";
             case "C":
                 return $"{osSpecificLeadingText} {retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
             case "CPP":
@@ -746,6 +746,20 @@ public class Transpiler
                 string buildDir = Path.Join(_build, name);
                 Directory.CreateDirectory(buildDir);
 
+                string[] jarFiles = new string[libraries.Length];
+                for (int i = 0; i < jarFiles.Length; i++)
+                {
+                    if (!File.Exists(libraries[i]))
+                        throw new DirectoryNotFoundException($"Jar file {libraries[i]} does not exist");
+                    jarFiles[i] = Path.Combine(buildDir, Path.GetFileName(libraries[i]));
+                    File.Copy(libraries[i], jarFiles[i]);
+                }
+                
+                string cpSeparator = Path.PathSeparator.ToString();
+
+                // Combine '.' (current directory) and all relative jar filenames
+                string classPath = string.Join(cpSeparator, new[] { "." }.Concat(jarFiles));
+
                 string javaFile = Path.Join(buildDir, "VeneerTooth.java");
                 string javaImports = """
                                      import org.graalvm.nativeimage.IsolateThread;
@@ -754,12 +768,12 @@ public class Transpiler
                 string javaClassWrapper = "public final class VeneerTooth";
                 File.WriteAllText(javaFile, $"{javaImports}\n{imports}\n{javaClassWrapper}{{{function}}}");
 
-                // 1. Run javac relatively inside buildDir
+                // 1. Run javac using the generated Classpath
                 ProcessStartInfo javaInfo = new ProcessStartInfo
                 {
                     FileName = "javac",
-                    Arguments = "VeneerTooth.java",
-                    WorkingDirectory = buildDir, // Run locally inside build directory
+                    Arguments = $"-cp \"{classPath}\" VeneerTooth.java",
+                    WorkingDirectory = buildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -778,12 +792,12 @@ public class Transpiler
                     }
                 }
 
-                // 2. Run native-image using purely relative naming so no absolute paths leak into the binary
+                // 2. Run native-image with the same Classpath
                 ProcessStartInfo nativeImageInfo = new ProcessStartInfo
                 {
                     FileName = "native-image",
-                    Arguments = $"--shared -H:Name=VeneerTooth.class -cp .",
-                    WorkingDirectory = buildDir, // Run locally inside build directory
+                    Arguments = $"--shared -H:Name=VeneerTooth.class -cp \"{classPath}\"",
+                    WorkingDirectory = buildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -815,7 +829,7 @@ public class Transpiler
                 string javaOutputFile = Path.Join(buildDir, name);   
                 string javaArguments = "";
 
-                // 3. Link using purely local filenames so the linker bakes relative relationships
+                // 3. Link using GCC (No JAR changes needed here; GraalVM already baked them into VeneerTooth.class.<ext>)
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     javaOutputFile += ".dll";
@@ -836,7 +850,7 @@ public class Transpiler
                 {
                     FileName = "gcc",
                     Arguments = javaArguments,
-                    WorkingDirectory = buildDir, // Run locally inside build directory
+                    WorkingDirectory = buildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -863,6 +877,9 @@ public class Transpiler
                     File.Delete(Path.Join(buildDir, "graal_isolate.h"));
                     File.Delete(Path.Join(buildDir, "graal_isolate_dynamic.h"));
                     File.Delete(Path.Join(buildDir, "VeneerTooth.class_dynamic.h"));
+                    
+                    // Optional: Delete .jar files if they are no longer needed post-compilation
+                    // foreach (var jar in Directory.GetFiles(buildDir, "*.jar")) { File.Delete(jar); }
                 }
 
                 return gccSucceeded ? javaOutputFile : default(string);
@@ -1001,9 +1018,10 @@ public class Transpiler
                 .Select(n => n.Value)
                 .ToList();
             string leadingBodyString = returnType.Trim().ToLower() == "void" ? "" : "return ";
+            string argsComma = paramToks.Count > 0 ? ", " : "";
             string cWrapperBody = $"""
                                   ensure_isolate();
-                                  {leadingBodyString}{functionName}X(thread, {string.Join(", ", paramToks)});
+                                  {leadingBodyString}{functionName}X(thread{argsComma}{string.Join(", ", paramToks)});
                                   """;
             string osSpecificLeadingText = "";
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
