@@ -76,7 +76,8 @@ public static class JavascriptManager
             UseShellExecute = false,
             CreateNoWindow = true,
             StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            StandardErrorEncoding = Encoding.UTF8,
+            WorkingDirectory = Environment.CurrentDirectory,
         };
 
         using var process = new Process { StartInfo = psi };

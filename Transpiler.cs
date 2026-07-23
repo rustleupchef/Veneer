@@ -31,6 +31,43 @@ public class Transpiler
         _tokens = tokens;
         _build = build;
         _configs = configs;
+        
+        if (!Directory.Exists(_build))
+            throw new DirectoryNotFoundException($"Directory {_build} not found");
+
+        void CopyContents(string sourceDirectory, string targetDirectory)
+        {
+            if (!Directory.Exists(sourceDirectory))
+            {
+                throw new DirectoryNotFoundException($"Source directory not found: {sourceDirectory}");
+            }
+
+            Directory.CreateDirectory(targetDirectory);
+
+            foreach (string filePath in Directory.GetFiles(sourceDirectory))
+            {
+                string fileName = Path.GetFileName(filePath);
+                string destPath = Path.Combine(targetDirectory, fileName);
+
+                File.Copy(filePath, destPath, true);
+            }
+
+            foreach (string subDir in Directory.GetDirectories(sourceDirectory))
+            {
+                string subDirName = Path.GetFileName(subDir);
+                string destSubDir = Path.Combine(targetDirectory, subDirName);
+
+                CopyContents(subDir, destSubDir);
+            }
+        }
+        
+        string[] jsFolders = configs.TryGetValue("JAVASCRIPT", out var config) ? config.libraries : [];
+        foreach (string jsFolder in jsFolders)
+        {
+            if (!Directory.Exists(jsFolder))
+                continue;
+            CopyContents(jsFolder, _build);
+        }
     }
 
     // Helper to look ahead without consuming
@@ -845,10 +882,11 @@ public class Transpiler
                     .Select(n => $"(object) {n}")
                     .ToList();
                 string jsParams = string.Join(", ", jsParamsToks);
+                string addArgs = jsParams.Length > 0 ? "," : "";
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(functionBody)}, {jsParams});");
+                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(functionBody)}{addArgs}{jsParams});");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
