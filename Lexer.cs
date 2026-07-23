@@ -48,6 +48,8 @@ public class Lexer
         { "/",  Tokens.TokenType.Slash },
         { "%",  Tokens.TokenType.Modulo },
         { "=",  Tokens.TokenType.Assign },
+        { "++", Tokens.TokenType.PlusPlus },
+        { "--", Tokens.TokenType.MinusMinus },
 
         // Comparison
         { "==", Tokens.TokenType.EqualEqual },

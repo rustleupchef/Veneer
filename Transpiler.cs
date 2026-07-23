@@ -1121,6 +1121,9 @@ public class Transpiler
             case Tokens.TokenType.AmpAmp:
             case Tokens.TokenType.PipePipe:
                 return " " + token.Value + " ";
+            case Tokens.TokenType.PlusPlus:
+            case Tokens.TokenType.MinusMinus:
+                return token.Value + " ";
             case Tokens.TokenType.Comma:
                 return ", ";
             default:

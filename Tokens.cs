@@ -23,6 +23,7 @@ public class Tokens
 
         // Operators
         Plus, Minus, Star, Slash, Modulo,
+        PlusPlus, MinusMinus,
         Assign, EqualEqual, NotEqual,
         LessThan, LessEqual, GreaterThan, GreaterEqual,
         AmpAmp, PipePipe, Bang,
