@@ -109,7 +109,8 @@ This a list of strings that has unique structure for each individual language to
 - Python: To install usable packages for python all that needs to be done is to create a VENV that contains all the packages that you want and use that VENV in your terminal session when running your veneer application.
 - C#: To install usable package for C# you need to make the list of string for the libraries attribute contain a list of package reference blocks seen in that of an actual .csproj file
 - Javascript: To install usable packages set up a package.json using commonjs or a module inside a folder of your choice. Inside the list of string for libraries write down all the folders that contains the files you want to be in the relative path of the node scripts and in this case that would be the folder containing your node_modules and package.json folder.
-- C/C++: To install and libraries all you have to do is write the file paths of all the header files that you want to use in your project and they will be deposited relative to your c/c++ code where you can access them by doing #include "[NAME].h"
+- C/C++: To install libraries for C/C++ all you have to do is write the file paths of all the header files that you want to use in your project, and they will be deposited relative to your c/c++ code where you can access them by doing #include "[NAME].h"
+- Java: To install libraries for java you must write the file paths of all the jar files that you want as dependencies for the java system which after they will be added as dependencies for your java code that can now be interacted in that code.
 
 ### Disclaimers
 There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
