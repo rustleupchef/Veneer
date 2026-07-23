@@ -1107,6 +1107,10 @@ public class Transpiler
             case Tokens.TokenType.Sealed:
             case Tokens.TokenType.Await:
                 return token.Value + " ";
+            case Tokens.TokenType.Dictionary:
+                return "Dictionary ";
+            case Tokens.TokenType.Task:
+                return "Task ";
             case Tokens.TokenType.Assign:
             case Tokens.TokenType.Plus:
             case Tokens.TokenType.Minus:
