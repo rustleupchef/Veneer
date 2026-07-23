@@ -882,11 +882,15 @@ public class Transpiler
                     .Select(n => $"(object) {n}")
                     .ToList();
                 string jsParams = string.Join(", ", jsParamsToks);
-                string addArgs = jsParams.Length > 0 ? "," : "";
+                string jsAddArgs = jsParamsToks.Count > 0 ? "," : "";
                 
                 StringBuilder jsBody = new StringBuilder();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
-                jsBody.AppendLine($"{leadingString} JavascriptManager.Run{embeddedString}({JsonSerializer.Serialize(functionBody)}{addArgs}{jsParams});");
+                jsBody.AppendLine($"{leadingString} JavascriptManager.Run" +
+                                  $"{embeddedString}(" +
+                                  $"{JsonSerializer.Serialize(functionBody)}" +
+                                  $"{jsAddArgs}" +
+                                  $"{jsParams});");
                 jsBody.AppendLine("}");
                 return jsBody.ToString();
             case "TYPESCRIPT":
@@ -932,10 +936,14 @@ public class Transpiler
                     .Select(n => $"(object) {n}")
                     .ToList();
                 string pyParams = string.Join(", ", pyParamToks);
+                string pyAddArgs = pyParamToks.Count > 0 ? "," : "";
                 string pyReturn = returnType == "void" ? "object" : returnType;
                 StringBuilder pyBody = new StringBuilder();
                 pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
-                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>({JsonSerializer.Serialize(functionBody)}, {JsonSerializer.Serialize(name)}, {pyParams});");
+                pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>(" +
+                                  $"{JsonSerializer.Serialize(functionBody)}," +
+                                  $"{JsonSerializer.Serialize(name)}{pyAddArgs}" +
+                                  $"{pyParams});");
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
             default:
