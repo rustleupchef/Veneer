@@ -6,7 +6,7 @@ internal abstract class Program
 {
     static void Main(string[] args)
     {
-        Parser.Default.ParseArguments<Options>(args)
+        Parser.Default.ParseArguments<Options>(args)    
             .WithParsed(RunOptions)
             .WithNotParsed(HandleParserError);
     }
