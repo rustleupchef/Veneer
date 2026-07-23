@@ -411,7 +411,7 @@ public class Transpiler
         
         // 1. Process and extract properties of the Return Type string
         var returnToks = Lexer.LexText(returnType).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
-        string retBase = returnToks.Count > 0 ? string.Join("", returnToks.Select(n => n.Value)) : "void";
+        string retBase = returnToks.Count > 0 ? returnToks[0].Value : "void";
         int retRank = 0;
         if (returnToks.Any(t => t.Type == Tokens.TokenType.LeftBracket))
         {
