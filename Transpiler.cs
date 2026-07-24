@@ -77,6 +77,7 @@ public class Transpiler
         
         CopyLanguageFolders([
             "JAVASCRIPT",
+            "TYPESCRIPT",
             "GO"
         ]);
     }
