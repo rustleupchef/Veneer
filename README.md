@@ -111,6 +111,7 @@ This a list of strings that has unique structure for each individual language to
 - Javascript: To install usable packages set up a package.json using commonjs or a module inside a folder of your choice. Inside the list of string for libraries write down all the folders that contains the files you want to be in the relative path of the node scripts and in this case that would be the folder containing your node_modules and package.json folder.
 - C/C++: To install libraries for C/C++ all you have to do is write the file paths of all the header files that you want to use in your project, and they will be deposited relative to your c/c++ code where you can access them by doing #include "[NAME].h"
 - Java: To install libraries for java you must write the file paths of all the jar files that you want as dependencies for the java system which after they will be added as dependencies for your java code that can now be interacted in that code.
+- GO: To install libraries for go all you have to do is write the file path for the folder that contains all you have to do is write the paths of the folders containing your go.sum, go.mod, and any other supporting code/package folders.
 
 ### Disclaimers
 There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
