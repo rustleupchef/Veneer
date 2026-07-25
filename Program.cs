@@ -35,7 +35,7 @@ internal abstract class Program
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
         }
 
-        string[] csharpLibraries = configs.TryGetValue("csharp", out var config) ? config.Libraries : [];
+        string[] csharpLibraries = configs.TryGetValue("csharp", out LanguageConfig.Config? config) ? config.Libraries : [];
         string? executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
