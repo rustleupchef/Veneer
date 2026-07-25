@@ -39,7 +39,7 @@ public class Transpiler
         {
             foreach (string language in languages)
             {
-                string[] languageFolders = configs.TryGetValue(language, out var config) ? config.Libraries : [];
+                string[] languageFolders = configs.TryGetValue(language, out LanguageConfig.Config? config) ? config.Libraries : [];
                 foreach (string folder in languageFolders)
                 {
                     if (!Directory.Exists(folder))
@@ -66,7 +66,7 @@ public class Transpiler
     // Guard & consume an expected token type
     private Tokens.Token Consume(Tokens.TokenType type, string errorMessage)
     {
-        var token = Peek();
+        Tokens.Token token = Peek();
         if (token.Type != type) 
             throw new Exception($"[Transpile Error] {errorMessage} Found '{token.Value}' instead at token position {_index}.");
         _index++;
@@ -75,9 +75,9 @@ public class Transpiler
 
     public string Transpile()
     {
-        string imports = _configs.TryGetValue("CSHARP", out var config) ? string.Join('\n', config.Imports) : "";
+        string imports = _configs.TryGetValue("CSHARP", out LanguageConfig.Config? config) ? string.Join('\n', config.Imports) : "";
         
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         
         // Phase 4 Blueprint: Generate a high-performance C# template class
         sb.AppendLine("//---------------------------------------------------------");
@@ -94,7 +94,7 @@ public class Transpiler
         // auto-generated Program wrapper below. User-defined classes are
         // parsed out separately (see ParseClass) into _userClasses so this
         // wrapper never nests or overrides them.
-        var programBody = new StringBuilder();
+        StringBuilder programBody = new();
         while (Peek().Type != Tokens.TokenType.EndOfFile)
         {
             programBody.Append(ParseTopLevelStatement());
@@ -102,7 +102,7 @@ public class Transpiler
 
         // Emit user-defined classes as their own top-level types —
         // siblings of Program, never children of it.
-        foreach (var userClass in _userClasses)
+        foreach (string userClass in _userClasses)
         {
             sb.AppendLine(userClass);
             sb.AppendLine();
@@ -125,7 +125,7 @@ public class Transpiler
 
     private string ParseTopLevelStatement()
     {
-        var token = Peek();
+        Tokens.Token token = Peek();
         
         if (token.Type == Tokens.TokenType.Function)
         {
@@ -174,7 +174,7 @@ public class Transpiler
     // auto-generated Program class.
     private string ParseClass()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
 
         while (ModifierTokens.Contains(Peek().Type))
         {
@@ -185,7 +185,7 @@ public class Transpiler
         Consume(Tokens.TokenType.Class, "Expected 'class' keyword.");
         sb.Append("class ");
 
-        var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for class name.");
+        Tokens.Token nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for class name.");
         sb.Append(nameTok.Value);
 
         // Optional base class / interface list: class Foo : Base, IBar
@@ -193,7 +193,7 @@ public class Transpiler
         {
             _index++;
             sb.Append(" : ");
-            var parts = new List<string>();
+            List<string> parts = new();
             while (Peek().Type != Tokens.TokenType.LeftBrace && Peek().Type != Tokens.TokenType.EndOfFile)
             {
                 parts.Add(Peek().Type == Tokens.TokenType.Comma ? ", " : Peek().Value);
@@ -215,12 +215,12 @@ public class Transpiler
     private string ParseClassBody()
     {
         Consume(Tokens.TokenType.LeftBrace, "Expected '{' opening class body.");
-        var sb = new StringBuilder("{\n");
+        StringBuilder sb = new("{\n");
         int braceScope = 1;
 
         while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
         {
-            var token = Peek();
+            Tokens.Token token = Peek();
 
             if (token.Type == Tokens.TokenType.Function)
             {
@@ -267,7 +267,7 @@ public class Transpiler
     // Parsing for return type
     private string ParseReturnType()
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         while (Peek().Type != Tokens.TokenType.GreaterThan && Peek().Type != Tokens.TokenType.EndOfFile)
         {
             sb.Append(Peek().Value);
@@ -283,7 +283,7 @@ public class Transpiler
             .Select(n => n.Value)
             .ToList();
         bool isAsync = false;
-        foreach (var token in _functionModifiers)
+        foreach (Tokens.Token token in _functionModifiers)
             if (token.Type == Tokens.TokenType.Async)
                 isAsync = true;
         _functionModifiers.Clear();
@@ -297,7 +297,7 @@ public class Transpiler
         
         Consume(Tokens.TokenType.GreaterThan, "Expected '>' closing return type.");
         
-        var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for function name.");
+        Tokens.Token nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for function name.");
         string funcName = nameTok.Value;
 
         // Auto-map lower-case 'main' to C#'s entry point format
@@ -305,7 +305,7 @@ public class Transpiler
 
         Consume(Tokens.TokenType.LeftParen, "Expected '(' after function identifier.");
         
-        var paramsSb = new StringBuilder();
+        StringBuilder paramsSb = new();
         while (Peek().Type != Tokens.TokenType.RightParen && Peek().Type != Tokens.TokenType.EndOfFile)
         {
             paramsSb.Append(Peek().Value + " ");
@@ -332,7 +332,7 @@ public class Transpiler
             if (toks.Count > 0)
             {
                 name = toks.Last().Value;
-                var typeToks = toks.Take(toks.Count - 1).ToList();
+                List<Tokens.Token> typeToks = toks.Take(toks.Count - 1).ToList();
                 if (typeToks.Count > 0)
                 {
                     bType = typeToks[0].Value;
@@ -438,7 +438,7 @@ public class Transpiler
         string langUpper = language.ToUpper().Trim().Replace("\"", "");
         
         // 1. Process and extract properties of the Return Type string
-        var returnToks = Lexer.LexText(returnType).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
+        List<Tokens.Token> returnToks = Lexer.LexText(returnType).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
         string retBase = returnToks.Count > 0 ? returnToks[0].Value : "void";
         int retRank = 0;
         if (returnToks.Any(t => t.Type == Tokens.TokenType.LeftBracket))
@@ -449,12 +449,12 @@ public class Transpiler
         }
 
         // 2. Loop parameters via Lexer token boundaries to safely bypass nested dimensional arrays
-        var paramTokens = Lexer.LexText(parameters).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
-        var parsedParams = new List<(string BaseType, int ArrayRank, string Name)>();
-        var currentTokens = new List<Tokens.Token>();
+        List<Tokens.Token> paramTokens = Lexer.LexText(parameters).Where(t => t.Type != Tokens.TokenType.EndOfFile).ToList();
+        List<(string BaseType, int ArrayRank, string Name)> parsedParams = new();
+        List<Tokens.Token> currentTokens = new();
         int bracketScope = 0;
 
-        foreach (var tok in paramTokens)
+        foreach (Tokens.Token tok in paramTokens)
         {
             if (tok.Type == Tokens.TokenType.LeftBracket) bracketScope++;
             if (tok.Type == Tokens.TokenType.RightBracket) bracketScope--;
@@ -478,8 +478,8 @@ public class Transpiler
         }
 
         // 3. Rebuild and map parameters array structures matching specific language syntaxes
-        var argStrings = new List<string>();
-        foreach (var p in parsedParams)
+        List<string> argStrings = new();
+        foreach ((string BaseType, int ArrayRank, string Name) p in parsedParams)
         {
             string typeStr = MapTypeToLanguage(p.BaseType, p.ArrayRank, langUpper);
             switch (langUpper)
@@ -610,7 +610,7 @@ public class Transpiler
             return file;
         }
         
-        LanguageConfig.Config languageConfig = _configs.TryGetValue(language, out var config) 
+        LanguageConfig.Config languageConfig = _configs.TryGetValue(language, out LanguageConfig.Config? config) 
             ? config 
             : new LanguageConfig.Config([], []);
         string imports = string.Join("\n", languageConfig.Imports);
@@ -876,7 +876,7 @@ public class Transpiler
     // Generate c# code for outliers out of languages
     private string? GenerateOutlierCode(string language, string function, string parameters, string returnType, string name, bool appendImports = true)
     {
-        string imports = _configs.TryGetValue(language, out var config) 
+        string imports = _configs.TryGetValue(language, out LanguageConfig.Config? config) 
             ? appendImports 
                 ? string.Join('\n', config.Imports) 
                 : "" 
@@ -960,7 +960,7 @@ public class Transpiler
         bool isAsync = false;
         if (language == "CSHARP")
         {
-            foreach (var token in _functionModifiers)
+            foreach (Tokens.Token token in _functionModifiers)
                 if (token.Type == Tokens.TokenType.Async)
                     isAsync = true;
         }
@@ -1042,11 +1042,11 @@ public class Transpiler
         
         Consume(Tokens.TokenType.GreaterThan, "Expected '>' closing tooth return type.");
         
-        var nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for tooth name.");
+        Tokens.Token nameTok = Consume(Tokens.TokenType.Identifier, "Expected identifier for tooth name.");
         string toothName = nameTok.Value;
 
         Consume(Tokens.TokenType.LeftParen, "Expected '(' after tooth identifier.");
-        var paramsSb = new StringBuilder();
+        StringBuilder paramsSb = new();
         while (Peek().Type != Tokens.TokenType.RightParen && Peek().Type != Tokens.TokenType.EndOfFile)
         {
             paramsSb.Append(Peek().Value + " ");
@@ -1056,15 +1056,15 @@ public class Transpiler
 
         Consume(Tokens.TokenType.Language, "Expected 'language' property constraint.");
         Consume(Tokens.TokenType.LeftParen, "Expected '(' framing target platform string.");
-        var langTok = Consume(Tokens.TokenType.StringLiteral, "Expected literal string definition for language target.");
+        Tokens.Token langTok = Consume(Tokens.TokenType.StringLiteral, "Expected literal string definition for language target.");
         Consume(Tokens.TokenType.RightParen, "Expected ')' framing target platform string.");
 
         // CONSUME NEW ARROW HEREDOC STRUCTURE
         Consume(Tokens.TokenType.Arrow, "Expected '=>' boundary operator to open foreign code zone.");
         Consume(Tokens.TokenType.Identifier, "Expected block identifier bounding tag.");
-        var bodyTok = Consume(Tokens.TokenType.ForeignCodeBlock, "Expected raw foreign content packet data.");
+        Tokens.Token bodyTok = Consume(Tokens.TokenType.ForeignCodeBlock, "Expected raw foreign content packet data.");
 
-        var toothBodySb = new StringBuilder();
+        StringBuilder toothBodySb = new();
 
         toothBodySb.Append(ParseChip(
             langTok.Value, 
@@ -1074,7 +1074,7 @@ public class Transpiler
             toothName)
         );
         
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         if (toothBodySb.Length > 0)
         {
             sb.Append(" " + toothBodySb);
@@ -1093,12 +1093,12 @@ public class Transpiler
     private string ParseBlock()
     {
         Consume(Tokens.TokenType.LeftBrace, "Expected '{' code block initializer.");
-        var sb = new StringBuilder("{\n\t\t");
+        StringBuilder sb = new("{\n\t\t");
         int braceScope = 1;
 
         while (braceScope > 0 && Peek().Type != Tokens.TokenType.EndOfFile)
         {
-            var tok = Peek();
+            Tokens.Token tok = Peek();
             if (tok.Type == Tokens.TokenType.LeftBrace) braceScope++;
             if (tok.Type == Tokens.TokenType.RightBrace) braceScope--;
 

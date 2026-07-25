@@ -121,7 +121,7 @@ public static class Compiler
 
             Directory.CreateDirectory(dllDirectory);
 
-            var psi = new ProcessStartInfo("dotnet")
+            ProcessStartInfo psi = new("dotnet")
             {
                 WorkingDirectory = tempRoot,
                 UseShellExecute = false,

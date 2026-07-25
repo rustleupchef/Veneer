@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Veneer;
 
 public static class Lexer
@@ -100,7 +102,7 @@ public static class Lexer
     private static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
     {
         // 1. Check if it's a known keyword
-        if (Keywords.TryGetValue(text, out var type))
+        if (Keywords.TryGetValue(text, out Tokens.TokenType type))
         {
             return type;
         }
@@ -160,7 +162,7 @@ public static class Lexer
     
     public static List<Tokens.Token> LexText(string source)
     {
-        var tokens = new List<Tokens.Token>();
+        List<Tokens.Token> tokens = new();
         int i = 0;
 
         while (i < source.Length)
@@ -247,7 +249,7 @@ public static class Lexer
 
                     tokens.Add(new Tokens.Token(Tokens.TokenType.Identifier, closingTag));
 
-                    var codeContent = new System.Text.StringBuilder();
+                    StringBuilder codeContent = new();
 
                     // Line-by-line collection engine
                     while (i < source.Length)
@@ -270,7 +272,7 @@ public static class Lexer
                     continue;
                 }
 
-                if (OperatorsAndPunctuation.TryGetValue(twoCharOp, out var value))
+                if (OperatorsAndPunctuation.TryGetValue(twoCharOp, out Tokens.TokenType value))
                 {
                     tokens.Add(new Tokens.Token(value, twoCharOp));
                     i += 2;

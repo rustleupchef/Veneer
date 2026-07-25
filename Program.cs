@@ -52,7 +52,7 @@ internal abstract class Program
     static void HandleParserError(IEnumerable<Error> errs)
     {
         Console.WriteLine("Parser Error");
-        foreach (var err in errs)
+        foreach (Error err in errs)
         {
             Console.WriteLine(err.Tag);
         }
