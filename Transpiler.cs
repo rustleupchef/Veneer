@@ -1012,6 +1012,7 @@ public class Transpiler
             cWrapper = $$"""
                          #include "VeneerTooth.class.h"
                          #include <stdio.h>
+                         #include <stdbool.h>
                          static graal_isolatethread_t *thread = NULL;
                          
                          {{osSpecificLeadingText}}static void ensure_isolate(void) {
