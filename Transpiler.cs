@@ -360,6 +360,7 @@ public class Transpiler
                     {
                         "int" => "int",
                         "float" => "float",
+                        "double" => "double",
                         "bool" => lang == "JAVA" ? "boolean" : "bool",
                         "char" => "char",
                         "string" => lang == "JAVA" ? "String" : "string",
@@ -374,7 +375,7 @@ public class Transpiler
                 case "TYPESCRIPT":
                     string tsBase = baseType switch
                     {
-                        "int" or "float" => "number",
+                        "int" or "float" or "double" => "number",
                         "bool" => "boolean",
                         "char" or "string" => "string",
                         "void" => "void",
@@ -390,6 +391,7 @@ public class Transpiler
                     {
                         "int" => "int",
                         "float" => "float",
+                        "double" => "double",
                         "bool" => "bool",
                         "char" => "char",
                         "string" => lang == "C" ? "const char*" : "std::string",
@@ -405,6 +407,7 @@ public class Transpiler
                     {
                         "int" => "i32",
                         "float" => "f32",
+                        "double" => "f64",
                         "bool" => "bool",
                         "char" => "char",
                         "string" => "&str",
@@ -420,7 +423,8 @@ public class Transpiler
                     string goBase = baseType switch
                     {
                         "int" => "int",
-                        "float" => "float64",
+                        "float" => "float32",
+                        "double" => "float64",
                         "bool" => "bool",
                         "char" => "rune",
                         "string" => "string",
