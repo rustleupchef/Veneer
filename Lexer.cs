@@ -1,9 +1,9 @@
 namespace Veneer;
 
-public class Lexer
+public static class Lexer
 {
     // 1. Keyword Dictionary: For lowercase words found in the source code
-    public static readonly Dictionary<string, Tokens.TokenType> Keywords = new()
+    private static readonly Dictionary<string, Tokens.TokenType> Keywords = new()
     {
         { "for", Tokens.TokenType.For },
         { "while", Tokens.TokenType.While },
@@ -41,7 +41,7 @@ public class Lexer
     };
 
     // 2. Operators & Punctuation Dictionary: For literal code symbols
-    public static readonly Dictionary<string, Tokens.TokenType> OperatorsAndPunctuation = new()
+    private static readonly Dictionary<string, Tokens.TokenType> OperatorsAndPunctuation = new()
     {
         // Arithmetic & Assignment
         { "+",  Tokens.TokenType.Plus },
@@ -80,24 +80,24 @@ public class Lexer
         { "=>", Tokens.TokenType.Arrow }
     };
 
-    public static bool IsModifier(Tokens.TokenType type)
+    private static bool IsModifier(Tokens.TokenType type)
     {
-        HashSet<Tokens.TokenType> toothModifiers = new()
-        {
+        HashSet<Tokens.TokenType> toothModifiers =
+        [
             Tokens.TokenType.Public,
             Tokens.TokenType.Private,
             Tokens.TokenType.Protected,
             Tokens.TokenType.Internal,
             Tokens.TokenType.Static,
             Tokens.TokenType.Async,
-            Tokens.TokenType.Virtual, 
+            Tokens.TokenType.Virtual,
             Tokens.TokenType.Override,
-            Tokens.TokenType.Sealed,
-        };
+            Tokens.TokenType.Sealed
+        ];
         return toothModifiers.Contains(type);
     }
 
-    public static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
+    private static Tokens.TokenType ResolveLiteralOrIdentifier(string text)
     {
         // 1. Check if it's a known keyword
         if (Keywords.TryGetValue(text, out var type))
@@ -270,9 +270,9 @@ public class Lexer
                     continue;
                 }
 
-                if (OperatorsAndPunctuation.ContainsKey(twoCharOp))
+                if (OperatorsAndPunctuation.TryGetValue(twoCharOp, out var value))
                 {
-                    tokens.Add(new Tokens.Token(OperatorsAndPunctuation[twoCharOp], twoCharOp));
+                    tokens.Add(new Tokens.Token(value, twoCharOp));
                     i += 2;
                     continue;
                 }

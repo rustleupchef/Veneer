@@ -1,6 +1,6 @@
 namespace Veneer;
 
-public class Tokens
+public static class Tokens
 {
     public enum TokenType 
     {

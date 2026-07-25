@@ -6,7 +6,7 @@ namespace Veneer;
 
 public static class Compiler
 {
-    private static string GetAbsoluteMSBuildIncludeString(string absoluteTargetFolder)
+    private static string GetAbsoluteMsBuildIncludeString(string absoluteTargetFolder)
     {
         // 1. Get the full, clean absolute path (resolves any redundant slashes or relative dots)
         string cleanedPath = Path.GetFullPath(absoluteTargetFolder);
@@ -70,7 +70,7 @@ public static class Compiler
             string pythonManger = new StreamReader(
                 Assembly.
                     GetExecutingAssembly().
-                    GetManifestResourceStream("Veneer.PythonManager.cs")
+                    GetManifestResourceStream("Veneer.PythonManager.cs") ?? throw new InvalidOperationException()
                 ).ReadToEnd();
             File.WriteAllText(Path.Join(tempRoot, "PythonManager.cs"), pythonManger);
             
@@ -78,7 +78,7 @@ public static class Compiler
             string javascriptManager = new StreamReader(
                 Assembly.
                     GetExecutingAssembly().
-                    GetManifestResourceStream("Veneer.JavascriptManager.cs")
+                    GetManifestResourceStream("Veneer.JavascriptManager.cs") ?? throw new InvalidOperationException()
                 ).ReadToEnd();
             File.WriteAllText(Path.Join(tempRoot, "JavascriptManager.cs"), javascriptManager);
             
@@ -109,7 +109,7 @@ public static class Compiler
                         {string.Join("\n\t\t\t", libraries)}
                     </ItemGroup>
                     <ItemGroup>
-                      <Content Include=""{GetAbsoluteMSBuildIncludeString(dllDirectory)}"">
+                      <Content Include=""{GetAbsoluteMsBuildIncludeString(dllDirectory)}"">
                         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
                         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
                         

@@ -8,10 +8,10 @@ namespace Veneer;
 public class Transpiler
 {
     private readonly List<Tokens.Token> _tokens;
-    private int _index = 0;
-    private string _build;
-    private Dictionary<string, LanguageConfig.Config> _configs;
-    private List<Tokens.Token> functionModifiers = new();
+    private int _index;
+    private readonly string _build;
+    private readonly Dictionary<string, LanguageConfig.Config> _configs;
+    private readonly List<Tokens.Token> _functionModifiers = new();
 
     // Fully-parsed user-defined classes, collected separately from the
     // auto-generated Program wrapper so they can be emitted as top-level
@@ -19,12 +19,12 @@ public class Transpiler
     private readonly List<string> _userClasses = new();
 
     // Modifier keywords that can legally precede a class or function declaration.
-    private static readonly HashSet<Tokens.TokenType> ModifierTokens = new()
-    {
+    private static readonly HashSet<Tokens.TokenType> ModifierTokens =
+    [
         Tokens.TokenType.Public, Tokens.TokenType.Private, Tokens.TokenType.Protected, Tokens.TokenType.Internal,
         Tokens.TokenType.Static, Tokens.TokenType.ReadOnly, Tokens.TokenType.Const,
         Tokens.TokenType.Async, Tokens.TokenType.Virtual, Tokens.TokenType.Override, Tokens.TokenType.Sealed
-    };
+    ];
 
     public Transpiler(List<Tokens.Token> tokens, string build, Dictionary<string, LanguageConfig.Config> configs)
     {
@@ -39,7 +39,7 @@ public class Transpiler
         {
             foreach (string language in languages)
             {
-                string[] languageFolders = configs.TryGetValue(language, out var config) ? config.libraries : [];
+                string[] languageFolders = configs.TryGetValue(language, out var config) ? config.Libraries : [];
                 foreach (string folder in languageFolders)
                 {
                     if (!Directory.Exists(folder))
@@ -75,7 +75,7 @@ public class Transpiler
 
     public string Transpile()
     {
-        string imports = _configs.ContainsKey("CSHARP") ? string.Join('\n', _configs["CSHARP"].imports) : "";
+        string imports = _configs.TryGetValue("CSHARP", out var config) ? string.Join('\n', config.Imports) : "";
         
         var sb = new StringBuilder();
         
@@ -149,7 +149,7 @@ public class Transpiler
         _index++;
         if (token.IsFunctionModifier)
         {
-            functionModifiers.Add(token);
+            _functionModifiers.Add(token);
             return string.Empty;    
         }
         return EmitTokenFormatting(token);
@@ -254,7 +254,7 @@ public class Transpiler
 
             if (token.IsFunctionModifier)
             {
-                functionModifiers.Add(token);
+                _functionModifiers.Add(token);
                 continue;
             }
 
@@ -279,14 +279,14 @@ public class Transpiler
     // Translates: func<[RETURN_TYPE]> [IDENTIFIER] ([ARGS]) { ... }
     private string ParseFunction()
     {
-        List<string> baseToks = functionModifiers
+        List<string> baseToks = _functionModifiers
             .Select(n => n.Value)
             .ToList();
         bool isAsync = false;
-        foreach (var token in functionModifiers)
+        foreach (var token in _functionModifiers)
             if (token.Type == Tokens.TokenType.Async)
                 isAsync = true;
-        functionModifiers.Clear();
+        _functionModifiers.Clear();
         
         Consume(Tokens.TokenType.Function, "Expected 'func' keyword.");
         Consume(Tokens.TokenType.LessThan, "Expected '<' following 'func'.");
@@ -323,12 +323,12 @@ public class Transpiler
     private string CreateForeignFunction(string parameters, string language, string body, string returnType, string functionName, bool isAsync = false)
     {
         // Local helper to parse structured variable/type information out of individual token streams
-        var parseParamFromTokens = (List<Tokens.Token> toks) =>
+        (string BaseType, int ArrayRank, string Name) ParseParamFromTokens(List<Tokens.Token> toks)
         {
             string bType = "void";
             int rank = 0;
             string name = "";
-            
+
             if (toks.Count > 0)
             {
                 name = toks.Last().Value;
@@ -345,17 +345,19 @@ public class Transpiler
                     }
                 }
             }
+
             return (BaseType: bType, ArrayRank: rank, Name: name);
-        };
+        }
 
         // Mapping layer matching Veneer type syntax structures to your target runtime systems
-        var mapTypeToLanguage = (string baseType, int rank, string lang) =>
+        string MapTypeToLanguage(string baseType, int rank, string lang)
         {
             switch (lang)
             {
                 case "CSHARP":
                 case "JAVA":
-                    string csBase = baseType switch {
+                    string csBase = baseType switch
+                    {
                         "int" => "int",
                         "float" => "float",
                         "bool" => lang == "JAVA" ? "boolean" : "bool",
@@ -365,12 +367,13 @@ public class Transpiler
                         _ => baseType
                     };
                     if (rank == 0) return csBase;
-                    return lang == "CSHARP" 
-                        ? csBase + "[" + new string(',', rank - 1) + "]" 
-                        : csBase + string.Concat(System.Linq.Enumerable.Repeat("[]", rank));
+                    return lang == "CSHARP"
+                        ? csBase + "[" + new string(',', rank - 1) + "]"
+                        : csBase + string.Concat(Enumerable.Repeat("[]", rank));
 
                 case "TYPESCRIPT":
-                    string tsBase = baseType switch {
+                    string tsBase = baseType switch
+                    {
                         "int" or "float" => "number",
                         "bool" => "boolean",
                         "char" or "string" => "string",
@@ -378,12 +381,13 @@ public class Transpiler
                         _ => baseType
                     };
                     if (rank == 0) return tsBase;
-                    return tsBase + string.Concat(System.Linq.Enumerable.Repeat("[]", rank));
+                    return tsBase + string.Concat(Enumerable.Repeat("[]", rank));
 
                 case "C":
                 case "C++":
                 case "CPP":
-                    string cBase = baseType switch {
+                    string cBase = baseType switch
+                    {
                         "int" => "int",
                         "float" => "float",
                         "bool" => "bool",
@@ -397,7 +401,8 @@ public class Transpiler
 
                 case "RUST":
                     if (baseType == "void") return "()";
-                    string rustBase = baseType switch {
+                    string rustBase = baseType switch
+                    {
                         "int" => "i32",
                         "float" => "f32",
                         "bool" => "bool",
@@ -412,7 +417,8 @@ public class Transpiler
 
                 case "GO":
                     if (baseType == "void") return "";
-                    string goBase = baseType switch {
+                    string goBase = baseType switch
+                    {
                         "int" => "int",
                         "float" => "float64",
                         "bool" => "bool",
@@ -421,12 +427,12 @@ public class Transpiler
                         _ => baseType
                     };
                     if (rank == 0) return goBase;
-                    return string.Concat(System.Linq.Enumerable.Repeat("[]", rank)) + goBase;
+                    return string.Concat(Enumerable.Repeat("[]", rank)) + goBase;
 
                 default:
                     return "";
             }
-        };
+        }
 
         // Clean structural target name rules
         string langUpper = language.ToUpper().Trim().Replace("\"", "");
@@ -457,7 +463,7 @@ public class Transpiler
             {
                 if (currentTokens.Count > 0)
                 {
-                    parsedParams.Add(parseParamFromTokens(currentTokens));
+                    parsedParams.Add(ParseParamFromTokens(currentTokens));
                     currentTokens.Clear();
                 }
             }
@@ -468,14 +474,14 @@ public class Transpiler
         }
         if (currentTokens.Count > 0)
         {
-            parsedParams.Add(parseParamFromTokens(currentTokens));
+            parsedParams.Add(ParseParamFromTokens(currentTokens));
         }
 
         // 3. Rebuild and map parameters array structures matching specific language syntaxes
         var argStrings = new List<string>();
         foreach (var p in parsedParams)
         {
-            string typeStr = mapTypeToLanguage(p.BaseType, p.ArrayRank, langUpper);
+            string typeStr = MapTypeToLanguage(p.BaseType, p.ArrayRank, langUpper);
             switch (langUpper)
             {
                 case "PYTHON":
@@ -502,7 +508,7 @@ public class Transpiler
         }
 
         string formattedArgs = string.Join(", ", argStrings);
-        string retTypeStr = mapTypeToLanguage(retBase, retRank, langUpper);
+        string retTypeStr = MapTypeToLanguage(retBase, retRank, langUpper);
         string osSpecificLeadingText = "";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -571,27 +577,25 @@ public class Transpiler
             CopyContents(subDir, destSubDir);
         }
     }
+    
+    int RunProcess(ProcessStartInfo info)
+    {
+        using Process process = Process.Start(info) ?? throw new InvalidOperationException();
+        string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
+                
+        Console.WriteLine(output);
+                
+        process.WaitForExit();
+                
+        if (process.ExitCode != 0)
+            Console.WriteLine(error);
+        return process.ExitCode;
+    }
 
     // Generate library file for languages that support DLLImport utility of c#
-    private string CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
+    private string? CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
     {
-        int RunProcess(ProcessStartInfo info)
-        {
-            using (Process process = Process.Start(info))
-            {
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                
-                Console.WriteLine(output);
-                
-                process.WaitForExit();
-                
-                if (process.ExitCode != 0)
-                    Console.WriteLine(error);
-                return process.ExitCode;
-            }
-        }
-
         string AddExtension(string file)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -606,11 +610,11 @@ public class Transpiler
             return file;
         }
         
-        LanguageConfig.Config config = _configs.ContainsKey(language) 
-            ? _configs[language] 
+        LanguageConfig.Config languageConfig = _configs.TryGetValue(language, out var config) 
+            ? config 
             : new LanguageConfig.Config([], []);
-        string imports = string.Join("\n", config.imports);
-        string[] libraries = config.libraries;
+        string imports = string.Join("\n", languageConfig.Imports);
+        string[] libraries = languageConfig.Libraries;
         
         string name = Guid.NewGuid().ToString();
         switch (language)
@@ -688,7 +692,7 @@ public class Transpiler
                                      crate-type = ["cdylib"]
                                      
                                      [dependencies]
-                                     {string.Join("\n", config.libraries)}
+                                     {string.Join("\n", languageConfig.Libraries)}
                                      """;
                 File.WriteAllText(tomlFile, tomlContent);
                 
@@ -718,7 +722,7 @@ public class Transpiler
             case "GO":
                 string goBuildDir = Path.Join(_build, $"{name}");
                 Directory.CreateDirectory(goBuildDir);
-                string[] goFolders = config.libraries;
+                string[] goFolders = languageConfig.Libraries;
                 foreach (string goFolder in goFolders)
                 {
                     if (!Directory.Exists(goFolder))
@@ -795,7 +799,7 @@ public class Transpiler
                 };
 
                 if (RunProcess(javaInfo) != 0)
-                    return default(string);
+                    return null;
 
                 // 2. Run native-image with the same Classpath
                 ProcessStartInfo nativeImageInfo = new ProcessStartInfo
@@ -810,13 +814,13 @@ public class Transpiler
                 };
 
                 if (RunProcess(nativeImageInfo) != 0)
-                    return default(string);
+                    return null;
 
                 string headerFile = Path.Join(javaBuildDir, "VeneerTooth.class.h");
                 if (!File.Exists(headerFile) || !File.ReadAllText(headerFile).Contains(functionName))
                 {
                     Console.WriteLine($"Error: expected entry point '{functionName}' was not found in {headerFile}.");
-                    return default(string);
+                    return null;
                 }
 
                 string javaCFile = Path.Join(javaBuildDir, "main.c");
@@ -863,18 +867,18 @@ public class Transpiler
                         File.Delete(jarFile);
                 }
 
-                return gccSucceeded ? javaOutputFile : default(string);
+                return gccSucceeded ? javaOutputFile : null;
             default:
-                return default(string);
+                return null;
         }
     }
     
     // Generate c# code for outliers out of languages
-    private string GenerateOutlierCode(string language, string function, string parameters, string returnType, string name, bool appendImports = true)
+    private string? GenerateOutlierCode(string language, string function, string parameters, string returnType, string name, bool appendImports = true)
     {
-        string imports = _configs.ContainsKey(language) 
+        string imports = _configs.TryGetValue(language, out var config) 
             ? appendImports 
-                ? string.Join('\n', _configs[language].imports) 
+                ? string.Join('\n', config.Imports) 
                 : "" 
             : "";
         string functionBody = $"{imports}\n{function}";
@@ -919,20 +923,7 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process typescriptProcess = Process.Start(typescriptInfo))
-                {
-                    string typescriptOutput = typescriptProcess.StandardOutput.ReadToEnd();
-                    string typescriptError = typescriptProcess.StandardError.ReadToEnd();
-                    
-                    Console.WriteLine(typescriptOutput);
-                    
-                    typescriptProcess.WaitForExit();
-
-                    if (typescriptProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {typescriptError}");
-                    }
-                }
+                RunProcess(typescriptInfo);
 
                 string output = File.ReadAllText(javascriptFile);
                 File.Delete(javascriptFile);
@@ -957,7 +948,7 @@ public class Transpiler
                 pyBody.AppendLine("}");
                 return pyBody.ToString();
             default:
-                return default(string);
+                return null;
         }
     }
 
@@ -969,7 +960,7 @@ public class Transpiler
         bool isAsync = false;
         if (language == "CSHARP")
         {
-            foreach (var token in functionModifiers)
+            foreach (var token in _functionModifiers)
                 if (token.Type == Tokens.TokenType.Async)
                     isAsync = true;
         }
@@ -978,13 +969,13 @@ public class Transpiler
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName, isAsync);
         Console.WriteLine($"Foreign function: {foreignFunction}");
 
-        List<string> baseToks = functionModifiers
+        List<string> baseToks = _functionModifiers
                 .Select(n => n.Value)
                 .ToList();
         
         if (language == "CSHARP")
         {
-            functionModifiers.Clear();
+            _functionModifiers.Clear();
             return $"{string.Join(" ", baseToks)} {foreignFunction}";
         }
 
@@ -1025,19 +1016,19 @@ public class Transpiler
                          """;
         }
 
-        string libraryFile = CompileFunction(foreignFunction, language, cWrapper, entryPoint);
+        string? libraryFile = CompileFunction(foreignFunction, language, cWrapper, entryPoint);
         if (File.Exists(libraryFile))
         {
-            List<string> compiledToks = functionModifiers
+            List<string> compiledToks = _functionModifiers
                 .Where(n => n.Value != "static")
                 .Select(n => n.Value)
                 .ToList();
-            functionModifiers.Clear();
+            _functionModifiers.Clear();
             return $"[DllImport(\"{Path.GetRelativePath(_build, libraryFile)}\")]" +
                    $"\n{string.Join(" ", compiledToks)} static extern {returnType} {functionName}({parameters});\n";
         }
         
-        functionModifiers.Clear();
+        _functionModifiers.Clear();
         return $"{string.Join(" ", baseToks)} {GenerateOutlierCode(language, foreignFunction, parameters, returnType, functionName)}";
     }
 
@@ -1070,12 +1061,11 @@ public class Transpiler
 
         // CONSUME NEW ARROW HEREDOC STRUCTURE
         Consume(Tokens.TokenType.Arrow, "Expected '=>' boundary operator to open foreign code zone.");
-        var tagTok = Consume(Tokens.TokenType.Identifier, "Expected block identifier bounding tag.");
+        Consume(Tokens.TokenType.Identifier, "Expected block identifier bounding tag.");
         var bodyTok = Consume(Tokens.TokenType.ForeignCodeBlock, "Expected raw foreign content packet data.");
 
         var toothBodySb = new StringBuilder();
 
-        // TODO: Generate c# codeblock from foreign code block
         toothBodySb.Append(ParseChip(
             langTok.Value, 
             paramsSb.ToString().Trim(), 
@@ -1125,7 +1115,7 @@ public class Transpiler
     }
 
     // Handles code formatting aesthetics so target C# code compiles perfectly
-    private string EmitTokenFormatting(Tokens.Token token)
+    private string EmitTokenFormatting(Tokens.Token? token)
     {
         if (token == null) return "";
         

@@ -15,9 +15,9 @@ internal abstract class Program
     {
         if (Directory.Exists(opts.BuildDirectory))
             Directory.Delete(opts.BuildDirectory, true);
-        Directory.CreateDirectory(opts.BuildDirectory);
+        Directory.CreateDirectory(opts.BuildDirectory ?? throw new InvalidOperationException());
         
-        string[] files = Directory.GetFiles(opts.SourceDirectory, "*.v");
+        string[] files = Directory.GetFiles(opts.SourceDirectory ?? throw new InvalidOperationException(), "*.v");
         string tempSourceDir = Path.Combine(Path.GetTempPath(), "veneer-code-" + Guid.NewGuid());
         string tempDllBuildDir = Path.Combine(Path.GetTempPath(), "veneer-build-foreign-code-" + Guid.NewGuid());
         Directory.CreateDirectory(tempSourceDir);
@@ -35,7 +35,7 @@ internal abstract class Program
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
         }
 
-        string[] csharpLibraries = configs.ContainsKey("csharp") ? configs["csharp"].libraries : [];
+        string[] csharpLibraries = configs.TryGetValue("csharp", out var config) ? config.Libraries : [];
         string? executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
