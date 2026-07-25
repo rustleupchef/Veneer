@@ -59,7 +59,7 @@ public class Transpiler
     private Tokens.Token Peek(int offset = 0)
     {
         if (_index + offset >= _tokens.Count) 
-            return new Tokens.Token(Tokens.TokenType.EndOfFile, "");
+            return new (Tokens.TokenType.EndOfFile, "");
         return _tokens[_index + offset];
     }
 
@@ -612,7 +612,7 @@ public class Transpiler
         
         LanguageConfig.Config languageConfig = _configs.TryGetValue(language, out LanguageConfig.Config? config) 
             ? config 
-            : new LanguageConfig.Config([], []);
+            : new([], []);
         string imports = string.Join("\n", languageConfig.Imports);
         string[] libraries = languageConfig.Libraries;
         
@@ -898,7 +898,7 @@ public class Transpiler
                 string jsParams = string.Join(", ", jsParamsToks);
                 string jsAddArgs = jsParamsToks.Count > 0 ? "," : "";
                 
-                StringBuilder jsBody = new StringBuilder();
+                StringBuilder jsBody = new();
                 jsBody.AppendLine($"{returnType} {name} ({parameters}) {{");
                 jsBody.AppendLine($"{leadingString} JavascriptManager.Run" +
                                   $"{embeddedString}(" +
@@ -939,7 +939,7 @@ public class Transpiler
                 string pyParams = string.Join(", ", pyParamToks);
                 string pyAddArgs = pyParamToks.Count > 0 ? "," : "";
                 string pyReturn = returnType == "void" ? "object" : returnType;
-                StringBuilder pyBody = new StringBuilder();
+                StringBuilder pyBody = new();
                 pyBody.AppendLine($"{returnType} {name}({parameters}) {{");
                 pyBody.AppendLine($"{leadingString}PythonManager.Instance.Execute<{pyReturn}>(" +
                                   $"{JsonSerializer.Serialize(functionBody)}," +
