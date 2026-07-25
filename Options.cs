@@ -2,7 +2,7 @@ using CommandLine;
 
 namespace Veneer;
 
-public abstract class Options
+public class Options
 {
     [Option('b', "build", Required = true, HelpText = "Build Location For Outputted Binaries and DLLs")]
     public string? BuildDirectory { get; set; }
