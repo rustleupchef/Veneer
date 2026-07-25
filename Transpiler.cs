@@ -822,8 +822,7 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                bool gccSucceeded;
-                gccSucceeded = RunProcess(javaCStartInfo) == 0;
+                bool gccSucceeded = RunProcess(javaCStartInfo) == 0;
 
                 if (gccSucceeded)
                 {
@@ -836,8 +835,9 @@ public class Transpiler
                     File.Delete(Path.Join(javaBuildDir, "graal_isolate_dynamic.h"));
                     File.Delete(Path.Join(javaBuildDir, "VeneerTooth.class_dynamic.h"));
                     
-                    // Optional: Delete .jar files if they are no longer needed post-compilation
-                    // foreach (var jar in Directory.GetFiles(buildDir, "*.jar")) { File.Delete(jar); }
+                    // Delete .jar files
+                    foreach (string jarFile in jarFiles)
+                        File.Delete(jarFile);
                 }
 
                 return gccSucceeded ? javaOutputFile : default(string);
