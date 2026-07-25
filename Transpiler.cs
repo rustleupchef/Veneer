@@ -575,6 +575,23 @@ public class Transpiler
     // Generate library file for languages that support DLLImport utility of c#
     private string CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
     {
+        int RunProcess(ProcessStartInfo info)
+        {
+            using (Process process = Process.Start(info))
+            {
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                
+                Console.WriteLine(output);
+                
+                process.WaitForExit();
+                
+                if (process.ExitCode != 0)
+                    Console.WriteLine(error);
+                return process.ExitCode;
+            }
+        }
+        
         LanguageConfig.Config config = _configs.ContainsKey(language) 
             ? _configs[language] 
             : new LanguageConfig.Config([], []);
@@ -640,20 +657,7 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process cProcess = Process.Start(cStartInfo))
-                {
-                    string cOutput = cProcess.StandardOutput.ReadToEnd();
-                    string cError = cProcess.StandardError.ReadToEnd();
-                    
-                    Console.WriteLine(cOutput);
-                    
-                    cProcess.WaitForExit();
-
-                    if (cProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {cError}");
-                    }
-                }
+                RunProcess(cStartInfo);
                 
                 File.Delete(cFile);
                 File.Delete(Path.Join(_build, $"{name}.o"));
@@ -688,20 +692,7 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process rustProcess = Process.Start(rustInfo))
-                {
-                    string rustOutput = rustProcess.StandardOutput.ReadToEnd();
-                    string rustError = rustProcess.StandardError.ReadToEnd();
-                    
-                    Console.WriteLine(rustOutput);
-                    
-                    rustProcess.WaitForExit();
-
-                    if (rustProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {rustError}");
-                    }
-                }
+                RunProcess(rustInfo);
                 
                 File.Delete(rustFile);
                 
@@ -750,20 +741,8 @@ public class Transpiler
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-                using (Process goProcess = Process.Start(goInfo))
-                {
-                    string goOutput = goProcess.StandardOutput.ReadToEnd();
-                    string goError = goProcess.StandardError.ReadToEnd();
-                    
-                    Console.WriteLine(goOutput);
-                    
-                    goProcess.WaitForExit();
-
-                    if (goProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {goError}");
-                    }
-                }
+                
+                RunProcess(goInfo);
                 
                 File.Delete(Path.Join(_build, $"{name}.h"));
                 Directory.Delete(goBuildDir, true);
@@ -806,17 +785,8 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process javaProcess = Process.Start(javaInfo))
-                {
-                    Console.WriteLine(javaProcess.StandardOutput.ReadToEnd());
-                    string javaError = javaProcess.StandardError.ReadToEnd();
-                    javaProcess.WaitForExit();
-                    if (javaProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {javaError}");
-                        return default(string);
-                    }
-                }
+                if (RunProcess(javaInfo) != 0)
+                    return default(string);
 
                 // 2. Run native-image with the same Classpath
                 ProcessStartInfo nativeImageInfo = new ProcessStartInfo
@@ -830,17 +800,8 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
-                using (Process nativeImageProcess = Process.Start(nativeImageInfo))
-                {
-                    Console.WriteLine(nativeImageProcess.StandardOutput.ReadToEnd());
-                    string nativeImageError = nativeImageProcess.StandardError.ReadToEnd();
-                    nativeImageProcess.WaitForExit();
-                    if (nativeImageProcess.ExitCode != 0)
-                    {
-                        Console.WriteLine($"Error: {nativeImageError}");
-                        return default(string);
-                    }
-                }
+                if (RunProcess(nativeImageInfo) != 0)
+                    return default(string);
 
                 string headerFile = Path.Join(javaBuildDir, "VeneerTooth.class.h");
                 if (!File.Exists(headerFile) || !File.ReadAllText(headerFile).Contains(functionName))
@@ -884,14 +845,7 @@ public class Transpiler
                 };
 
                 bool gccSucceeded;
-                using (Process javaCProcess = Process.Start(javaCStartInfo))
-                {
-                    Console.WriteLine(javaCProcess.StandardOutput.ReadToEnd());
-                    string javaCError = javaCProcess.StandardError.ReadToEnd();
-                    javaCProcess.WaitForExit();
-                    gccSucceeded = javaCProcess.ExitCode == 0;
-                    if (!gccSucceeded) Console.WriteLine($"Error: {javaCError}");
-                }
+                gccSucceeded = RunProcess(javaCStartInfo) == 0;
 
                 if (gccSucceeded)
                 {
