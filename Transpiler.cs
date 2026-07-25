@@ -592,7 +592,7 @@ public class Transpiler
             }
         }
 
-        string addExtension(string file)
+        string AddExtension(string file)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return $"{file}.dll";
@@ -644,7 +644,7 @@ public class Transpiler
                 string cOutputFile = Path.Join(_build, $"{name}");
 
                 string arguments = "";
-                cOutputFile = addExtension(cOutputFile);
+                cOutputFile = AddExtension(cOutputFile);
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     arguments = $"-shared -o {cOutputFile} {cFile}";
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -675,7 +675,7 @@ public class Transpiler
                 string rustFile = Path.Join(_build, $"{name}.rs");
                 File.WriteAllText($"{imports}\n{rustFile}", function);
                 string rustOutputFile = $"{Path.Join(_build, $"{name}")}lib";
-                rustOutputFile = addExtension(rustOutputFile);
+                rustOutputFile = AddExtension(rustOutputFile);
 
                 ProcessStartInfo rustInfo = new ProcessStartInfo
                 {
@@ -715,7 +715,7 @@ public class Transpiler
                     goFile = ".";
                 
                 string goOutputFile = Path.Join(_build, $"{name}");
-                goOutputFile = addExtension(goOutputFile);
+                goOutputFile = AddExtension(goOutputFile);
 
                 ProcessStartInfo goInfo = new ProcessStartInfo
                 {
@@ -801,7 +801,7 @@ public class Transpiler
 
                 string javaOutputFile = Path.Join(javaBuildDir, name);   
                 string javaArguments = "";
-                javaOutputFile = addExtension(javaOutputFile);
+                javaOutputFile = AddExtension(javaOutputFile);
 
                 // 3. Link using GCC (No JAR changes needed here; GraalVM already baked them into VeneerTooth.class.<ext>)
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
