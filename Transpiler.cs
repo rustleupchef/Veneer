@@ -672,24 +672,47 @@ public class Transpiler
                 
                 return cOutputFile;
             case "RUST":
-                string rustFile = Path.Join(_build, $"{name}.rs");
-                File.WriteAllText($"{imports}\n{rustFile}", function);
-                string rustOutputFile = $"{Path.Join(_build, $"{name}")}lib";
+                string rustBuildDir = Path.Join(_build, $"{name}");
+                string rustSourceBuildDir = Path.Join(rustBuildDir, "src");
+                Directory.CreateDirectory(rustBuildDir);
+                Directory.CreateDirectory(rustSourceBuildDir);
+
+                string tomlFile = Path.Join(rustBuildDir, "Cargo.toml");
+                string tomlContent = $"""
+                                     [package]
+                                     name = "rust_bridge"
+                                     version = "0.1.0"
+                                     edition = "2021"
+                                     
+                                     [lib]
+                                     crate-type = ["cdylib"]
+                                     
+                                     [dependencies]
+                                     {string.Join("\n", config.libraries)}
+                                     """;
+                File.WriteAllText(tomlFile, tomlContent);
+                
+                string rustFile = Path.Join(rustSourceBuildDir, $"lib.rs");
+                File.WriteAllText(rustFile, $"{imports}\n{function}");
+                string rustBaseOutputFile = Path.Join(rustBuildDir, "target", "release", AddExtension("librust_bridge"));
+                string rustOutputFile = Path.Join(_build, $"{name}");
                 rustOutputFile = AddExtension(rustOutputFile);
 
                 ProcessStartInfo rustInfo = new ProcessStartInfo
                 {
-                    FileName = "rustc",
-                    Arguments = $"--crate-type=cdylib {rustFile} -o {rustOutputFile}",
+                    FileName = "cargo",
+                    Arguments = "build --release",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    WorkingDirectory = rustBuildDir,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
 
                 RunProcess(rustInfo);
                 
-                File.Delete(rustFile);
+                File.Copy(rustBaseOutputFile, rustOutputFile);
+                Directory.Delete(rustBuildDir, true);
                 
                 return rustOutputFile;
             case "GO":
