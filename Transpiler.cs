@@ -591,6 +591,20 @@ public class Transpiler
                 return process.ExitCode;
             }
         }
+
+        string addExtension(string file)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return $"{file}.dll";
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                return $"{file}.so";
+            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return $"${file}.dylib";
+            
+            return file;
+        }
         
         LanguageConfig.Config config = _configs.ContainsKey(language) 
             ? _configs[language] 
@@ -630,21 +644,13 @@ public class Transpiler
                 string cOutputFile = Path.Join(_build, $"{name}");
 
                 string arguments = "";
+                cOutputFile = addExtension(cOutputFile);
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    cOutputFile += ".dll";
                     arguments = $"-shared -o {cOutputFile} {cFile}";
-                }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    cOutputFile += ".so";
                     arguments = $"-shared -fPIC -o {cOutputFile} {cFile}";
-                }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    cOutputFile += ".dylib";
                     arguments = $"-dynamiclib -o {cOutputFile} {cFile}";
-                }
 
                 string compiler = language == "C" ? "gcc" : "g++";
                 ProcessStartInfo cStartInfo = new ProcessStartInfo
@@ -668,19 +674,8 @@ public class Transpiler
             case "RUST":
                 string rustFile = Path.Join(_build, $"{name}.rs");
                 File.WriteAllText($"{imports}\n{rustFile}", function);
-                string rustOutputFile = Path.Join(_build, $"{name}");
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    rustOutputFile = $"{rustOutputFile}lib.dll";
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    rustOutputFile = $"{rustOutputFile}lib.so";
-                }
-                else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    rustOutputFile = $"{rustOutputFile}lib.dylib";
-                }
+                string rustOutputFile = $"{Path.Join(_build, $"{name}")}lib";
+                rustOutputFile = addExtension(rustOutputFile);
 
                 ProcessStartInfo rustInfo = new ProcessStartInfo
                 {
@@ -720,16 +715,7 @@ public class Transpiler
                     goFile = ".";
                 
                 string goOutputFile = Path.Join(_build, $"{name}");
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    goOutputFile = $"{goOutputFile}.dll";
-                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    goOutputFile = $"{goOutputFile}.so";
-                } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    goOutputFile = $"{goOutputFile}.dylib";
-                }
+                goOutputFile = addExtension(goOutputFile);
 
                 ProcessStartInfo goInfo = new ProcessStartInfo
                 {
@@ -815,23 +801,15 @@ public class Transpiler
 
                 string javaOutputFile = Path.Join(javaBuildDir, name);   
                 string javaArguments = "";
+                javaOutputFile = addExtension(javaOutputFile);
 
                 // 3. Link using GCC (No JAR changes needed here; GraalVM already baked them into VeneerTooth.class.<ext>)
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    javaOutputFile += ".dll";
                     javaArguments = $"-shared -o {name}.dll main.c VeneerTooth.class.dll -I.";
-                }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    javaOutputFile += ".so";
                     javaArguments = $"-shared -fPIC -o {name}.so main.c VeneerTooth.class.so -I. -Wl,-rpath,$ORIGIN";
-                }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                {
-                    javaOutputFile += ".dylib";
                     javaArguments = $"-dynamiclib -o {name}.dylib main.c VeneerTooth.class.dylib -I. -Wl,-rpath,@loader_path";
-                }
 
                 ProcessStartInfo javaCStartInfo = new ProcessStartInfo
                 {
