@@ -37,32 +37,6 @@ public class Transpiler
 
         void CopyLanguageFolders(string[] languages)
         {
-            void CopyContents(string sourceDirectory, string targetDirectory)
-            {
-                if (!Directory.Exists(sourceDirectory))
-                {
-                    throw new DirectoryNotFoundException($"Source directory not found: {sourceDirectory}");
-                }
-
-                Directory.CreateDirectory(targetDirectory);
-
-                foreach (string filePath in Directory.GetFiles(sourceDirectory))
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    string destPath = Path.Combine(targetDirectory, fileName);
-
-                    File.Copy(filePath, destPath, true);
-                }
-
-                foreach (string subDir in Directory.GetDirectories(sourceDirectory))
-                {
-                    string subDirName = Path.GetFileName(subDir);
-                    string destSubDir = Path.Combine(targetDirectory, subDirName);
-
-                    CopyContents(subDir, destSubDir);
-                }
-            }
-            
             foreach (string language in languages)
             {
                 string[] languageFolders = configs.TryGetValue(language, out var config) ? config.libraries : [];
@@ -77,8 +51,7 @@ public class Transpiler
         
         CopyLanguageFolders([
             "JAVASCRIPT",
-            "TYPESCRIPT",
-            "GO"
+            "TYPESCRIPT"
         ]);
     }
 
@@ -572,6 +545,32 @@ public class Transpiler
                 return string.Empty;
         }
     }
+    
+    void CopyContents(string sourceDirectory, string targetDirectory)
+    {
+        if (!Directory.Exists(sourceDirectory))
+        {
+            throw new DirectoryNotFoundException($"Source directory not found: {sourceDirectory}");
+        }
+
+        Directory.CreateDirectory(targetDirectory);
+
+        foreach (string filePath in Directory.GetFiles(sourceDirectory))
+        {
+            string fileName = Path.GetFileName(filePath);
+            string destPath = Path.Combine(targetDirectory, fileName);
+
+            File.Copy(filePath, destPath, true);
+        }
+
+        foreach (string subDir in Directory.GetDirectories(sourceDirectory))
+        {
+            string subDirName = Path.GetFileName(subDir);
+            string destSubDir = Path.Combine(targetDirectory, subDirName);
+
+            CopyContents(subDir, destSubDir);
+        }
+    }
 
     // Generate library file for languages that support DLLImport utility of c#
     private string CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
@@ -708,13 +707,27 @@ public class Transpiler
                 
                 return rustOutputFile;
             case "GO":
-                string goFile = Path.Join(_build, $"{name}.go");
+                string goBuildDir = Path.Join(_build, $"{name}");
+                Directory.CreateDirectory(goBuildDir);
+                string[] goFolders = config.libraries;
+                foreach (string goFolder in goFolders)
+                {
+                    if (!Directory.Exists(goFolder))
+                        continue;
+                    CopyContents(goFolder, goBuildDir);
+                }
+                
+                string goFile = Path.Join(goBuildDir, $"{name}.go");
                 string goImports = """
                                    package main
                                    import "C"
                                    """;
                 string goMainFunction = "func main() {}";
                 File.WriteAllText(goFile, $"{goImports}\n{imports}\n{function}\n\n{goMainFunction}");
+                string goModFile = Path.Join(goBuildDir, "go.mod");
+                if (File.Exists(goModFile))
+                    goFile = ".";
+                
                 string goOutputFile = Path.Join(_build, $"{name}");
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -733,6 +746,7 @@ public class Transpiler
                     Arguments = $"build -buildmode=c-shared -o {goOutputFile} {goFile}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    WorkingDirectory = goBuildDir,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
@@ -751,19 +765,19 @@ public class Transpiler
                     }
                 }
                 
-                File.Delete(goFile);
                 File.Delete(Path.Join(_build, $"{name}.h"));
+                Directory.Delete(goBuildDir, true);
                 return goOutputFile;
             case "JAVA":
-                string buildDir = Path.Join(_build, name);
-                Directory.CreateDirectory(buildDir);
+                string javaBuildDir = Path.Join(_build, name);
+                Directory.CreateDirectory(javaBuildDir);
 
                 string[] jarFiles = new string[libraries.Length];
                 for (int i = 0; i < jarFiles.Length; i++)
                 {
                     if (!File.Exists(libraries[i]))
                         throw new DirectoryNotFoundException($"Jar file {libraries[i]} does not exist");
-                    jarFiles[i] = Path.Combine(buildDir, Path.GetFileName(libraries[i]));
+                    jarFiles[i] = Path.Combine(javaBuildDir, Path.GetFileName(libraries[i]));
                     File.Copy(libraries[i], jarFiles[i]);
                 }
                 
@@ -772,7 +786,7 @@ public class Transpiler
                 // Combine '.' (current directory) and all relative jar filenames
                 string classPath = string.Join(cpSeparator, new[] { "." }.Concat(jarFiles));
 
-                string javaFile = Path.Join(buildDir, "VeneerTooth.java");
+                string javaFile = Path.Join(javaBuildDir, "VeneerTooth.java");
                 string javaImports = """
                                      import org.graalvm.nativeimage.IsolateThread;
                                      import org.graalvm.nativeimage.c.function.CEntryPoint;
@@ -785,7 +799,7 @@ public class Transpiler
                 {
                     FileName = "javac",
                     Arguments = $"-cp \"{classPath}\" VeneerTooth.java",
-                    WorkingDirectory = buildDir,
+                    WorkingDirectory = javaBuildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -809,7 +823,7 @@ public class Transpiler
                 {
                     FileName = "native-image",
                     Arguments = $"--shared -H:Name=VeneerTooth.class -cp \"{classPath}\"",
-                    WorkingDirectory = buildDir,
+                    WorkingDirectory = javaBuildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -828,17 +842,17 @@ public class Transpiler
                     }
                 }
 
-                string headerFile = Path.Join(buildDir, "VeneerTooth.class.h");
+                string headerFile = Path.Join(javaBuildDir, "VeneerTooth.class.h");
                 if (!File.Exists(headerFile) || !File.ReadAllText(headerFile).Contains(functionName))
                 {
                     Console.WriteLine($"Error: expected entry point '{functionName}' was not found in {headerFile}.");
                     return default(string);
                 }
 
-                string javaCFile = Path.Join(buildDir, "main.c");
+                string javaCFile = Path.Join(javaBuildDir, "main.c");
                 File.WriteAllText(javaCFile, cWrapper);
 
-                string javaOutputFile = Path.Join(buildDir, name);   
+                string javaOutputFile = Path.Join(javaBuildDir, name);   
                 string javaArguments = "";
 
                 // 3. Link using GCC (No JAR changes needed here; GraalVM already baked them into VeneerTooth.class.<ext>)
@@ -862,7 +876,7 @@ public class Transpiler
                 {
                     FileName = "gcc",
                     Arguments = javaArguments,
-                    WorkingDirectory = buildDir,
+                    WorkingDirectory = javaBuildDir,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -883,12 +897,12 @@ public class Transpiler
                 {
                     // Safe to delete compile-time artifacts using precise paths
                     File.Delete(javaFile);
-                    File.Delete(Path.Join(buildDir, "VeneerTooth.class"));
+                    File.Delete(Path.Join(javaBuildDir, "VeneerTooth.class"));
                     File.Delete(javaCFile);
                     File.Delete(headerFile);
-                    File.Delete(Path.Join(buildDir, "graal_isolate.h"));
-                    File.Delete(Path.Join(buildDir, "graal_isolate_dynamic.h"));
-                    File.Delete(Path.Join(buildDir, "VeneerTooth.class_dynamic.h"));
+                    File.Delete(Path.Join(javaBuildDir, "graal_isolate.h"));
+                    File.Delete(Path.Join(javaBuildDir, "graal_isolate_dynamic.h"));
+                    File.Delete(Path.Join(javaBuildDir, "VeneerTooth.class_dynamic.h"));
                     
                     // Optional: Delete .jar files if they are no longer needed post-compilation
                     // foreach (var jar in Directory.GetFiles(buildDir, "*.jar")) { File.Delete(jar); }
