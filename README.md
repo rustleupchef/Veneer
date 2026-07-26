@@ -143,5 +143,6 @@ To compile the compiler simply run this on the machine you want to use the compi
 ```bash
 dotnet publish -c Release --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true -o [OUTPUT_DIRECTORY]
 ```
+After this is done, you have to store veneer in any location (ideally your home directory in a folder called .veneer) and add this folder to your path.
 
 Now all you have to do is run the compiler in a terminal environment that has access to all your compilers, and the program will output a single executable in the build directory that you provided
