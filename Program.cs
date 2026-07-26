@@ -26,6 +26,8 @@ internal abstract class Program
         Dictionary<string, LanguageConfig.Config>? configs = LanguageConfig.DeserializeConfig(opts.ConfigFile);
         configs ??= new Dictionary<string, LanguageConfig.Config>();
 
+        bool implementJavaScript = false;
+        bool implementPython = false;
         foreach (string file in files)
         {
             List<Tokens.Token> tokens = Lexer.LexText(File.ReadAllText(file));
@@ -33,6 +35,11 @@ internal abstract class Program
             string result = transpiler.Transpile();
             string name = Path.GetFileNameWithoutExtension(file);
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
+            
+            if (transpiler._usedJavaScript)
+                implementJavaScript = true;
+            if (transpiler._usedPython)
+                implementPython = true;
         }
 
         string[] csharpLibraries = configs.TryGetValue("csharp", out LanguageConfig.Config? config) ? config.libraries : [];
@@ -41,7 +48,9 @@ internal abstract class Program
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
             dllDirectory: Path.GetFullPath(tempDllBuildDir),
             projectName: opts.ExecutableName,
-            libraries: csharpLibraries);
+            libraries: csharpLibraries,
+            implementPython: implementPython,
+            implementJavaScript: implementJavaScript);
         
         Directory.Delete(tempSourceDir, true);
         Directory.Delete(tempDllBuildDir, true);

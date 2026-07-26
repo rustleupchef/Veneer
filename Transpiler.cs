@@ -9,6 +9,8 @@ public class Transpiler
 {
     private readonly List<Tokens.Token> _tokens;
     private int _index;
+    public bool _usedJavaScript = false;
+    public bool _usedPython = false;
     private readonly string _build;
     private readonly Dictionary<string, LanguageConfig.Config> _configs;
     private readonly List<Tokens.Token> _functionModifiers = new();
@@ -892,6 +894,7 @@ public class Transpiler
         switch (language)
         {
             case "JAVASCRIPT":
+                _usedJavaScript = true;
                 string embeddedString = isVoid ? "" : $"<{returnType}>";
                 List<string> jsParamsToks = Lexer
                     .LexText(parameters)
@@ -934,6 +937,7 @@ public class Transpiler
                 File.Delete(typescriptFile);
                 return GenerateOutlierCode("JAVASCRIPT", output, parameters, returnType, name, false);
             case "PYTHON":
+                _usedPython = true;
                 List<string> pyParamToks = Lexer
                     .LexText(parameters)
                     .Where(n => n.Type == Tokens.TokenType.Identifier)

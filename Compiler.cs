@@ -29,7 +29,9 @@ public static class Compiler
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null,
-        string[]? libraries = null)
+        string[]? libraries = null,
+        bool implementPython = true,
+        bool implementJavaScript = true)
     {
 
         if (!Directory.Exists(dllDirectory))
@@ -67,20 +69,26 @@ public static class Compiler
                 File.Copy(file, destination);
             }
             // Add Python manager in the temp directory
-            string pythonManger = new StreamReader(
-                Assembly.
-                    GetExecutingAssembly().
-                    GetManifestResourceStream("Veneer.PythonManager.cs") ?? throw new InvalidOperationException()
-                ).ReadToEnd();
-            File.WriteAllText(Path.Join(tempRoot, "PythonManager.cs"), pythonManger);
+            if (implementPython)
+            {
+                string pythonManger = new StreamReader(
+                    Assembly.
+                        GetExecutingAssembly().
+                        GetManifestResourceStream("Veneer.PythonManager.cs") ?? throw new InvalidOperationException()
+                    ).ReadToEnd();
+                File.WriteAllText(Path.Join(tempRoot, "PythonManager.cs"), pythonManger);
+            }
             
             // Add Javascript manager in the temp directory
-            string javascriptManager = new StreamReader(
-                Assembly.
-                    GetExecutingAssembly().
-                    GetManifestResourceStream("Veneer.JavascriptManager.cs") ?? throw new InvalidOperationException()
-                ).ReadToEnd();
-            File.WriteAllText(Path.Join(tempRoot, "JavascriptManager.cs"), javascriptManager);
+            if (implementJavaScript)
+            {
+                string javascriptManager = new StreamReader(
+                    Assembly.
+                        GetExecutingAssembly().
+                        GetManifestResourceStream("Veneer.JavascriptManager.cs") ?? throw new InvalidOperationException()
+                    ).ReadToEnd();
+                File.WriteAllText(Path.Join(tempRoot, "JavascriptManager.cs"), javascriptManager);
+            }
             
             // Target whatever TFM this program itself is running on, so this doesn't
             // need to be bumped by hand every time you move to a new SDK.
@@ -93,6 +101,7 @@ public static class Compiler
                 : "";
 
             projectName ??= "main";
+            string pythonNet = implementPython ? "<PackageReference Include=\"pythonnet\" Version=\"3.1.0\"/>" : "";
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
@@ -105,7 +114,7 @@ public static class Compiler
                         <InvariantGlobalization>true</InvariantGlobalization>{extraProps}
                     </PropertyGroup>
                     <ItemGroup>
-                        <PackageReference Include=""pythonnet"" Version=""3.1.0""/>
+                        {pythonNet}
                         {string.Join("\n\t\t\t", libraries)}
                     </ItemGroup>
                     <ItemGroup>
