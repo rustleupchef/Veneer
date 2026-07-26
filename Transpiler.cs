@@ -39,7 +39,7 @@ public class Transpiler
         {
             foreach (string language in languages)
             {
-                string[] languageFolders = configs.TryGetValue(language, out LanguageConfig.Config? config) ? config.Libraries : [];
+                string[] languageFolders = configs.TryGetValue(language, out LanguageConfig.Config? config) ? config.libraries : [];
                 foreach (string folder in languageFolders)
                 {
                     if (!Directory.Exists(folder))
@@ -75,7 +75,7 @@ public class Transpiler
 
     public string Transpile()
     {
-        string imports = _configs.TryGetValue("CSHARP", out LanguageConfig.Config? config) ? string.Join('\n', config.Imports) : "";
+        string imports = _configs.TryGetValue("CSHARP", out LanguageConfig.Config? config) ? string.Join('\n', config.imports) : "";
         
         StringBuilder sb = new();
         
@@ -617,8 +617,8 @@ public class Transpiler
         LanguageConfig.Config languageConfig = _configs.TryGetValue(language, out LanguageConfig.Config? config) 
             ? config 
             : new([], []);
-        string imports = string.Join("\n", languageConfig.Imports);
-        string[] libraries = languageConfig.Libraries;
+        string imports = string.Join("\n", languageConfig.imports);
+        string[] libraries = languageConfig.libraries;
         
         string name = Guid.NewGuid().ToString();
         switch (language)
@@ -696,7 +696,7 @@ public class Transpiler
                                      crate-type = ["cdylib"]
                                      
                                      [dependencies]
-                                     {string.Join("\n", languageConfig.Libraries)}
+                                     {string.Join("\n", languageConfig.libraries)}
                                      """;
                 File.WriteAllText(tomlFile, tomlContent);
                 
@@ -726,7 +726,7 @@ public class Transpiler
             case "GO":
                 string goBuildDir = Path.Join(_build, $"{name}");
                 Directory.CreateDirectory(goBuildDir);
-                string[] goFolders = languageConfig.Libraries;
+                string[] goFolders = languageConfig.libraries;
                 foreach (string goFolder in goFolders)
                 {
                     if (!Directory.Exists(goFolder))
@@ -882,7 +882,7 @@ public class Transpiler
     {
         string imports = _configs.TryGetValue(language, out LanguageConfig.Config? config) 
             ? appendImports 
-                ? string.Join('\n', config.Imports) 
+                ? string.Join('\n', config.imports) 
                 : "" 
             : "";
         string functionBody = $"{imports}\n{function}";

@@ -4,7 +4,7 @@ namespace Veneer;
 
 public static class LanguageConfig
 {
-    public record Config(string[] Imports, string[] Libraries);
+    public record Config(string[] imports, string[] libraries);
 
 
     public static Dictionary<string, Config>? DeserializeConfig(string? path)
