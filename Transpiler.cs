@@ -361,6 +361,7 @@ public class Transpiler
                     string csBase = baseType switch
                     {
                         "int" => "int",
+                        "long" => "long",
                         "float" => "float",
                         "double" => "double",
                         "bool" => lang == "JAVA" ? "boolean" : "bool",
@@ -377,7 +378,7 @@ public class Transpiler
                 case "TYPESCRIPT":
                     string tsBase = baseType switch
                     {
-                        "int" or "float" or "double" => "number",
+                        "int" or "float" or "double" or "long" => "number",
                         "bool" => "boolean",
                         "char" or "string" => "string",
                         "void" => "void",
@@ -392,6 +393,7 @@ public class Transpiler
                     string cBase = baseType switch
                     {
                         "int" => "int",
+                        "long" => "long",
                         "float" => "float",
                         "double" => "double",
                         "bool" => "bool",
@@ -408,6 +410,7 @@ public class Transpiler
                     string rustBase = baseType switch
                     {
                         "int" => "i32",
+                        "long" => "i64",
                         "float" => "f32",
                         "double" => "f64",
                         "bool" => "bool",
@@ -425,6 +428,7 @@ public class Transpiler
                     string goBase = baseType switch
                     {
                         "int" => "int",
+                        "long" => "int64",
                         "float" => "float32",
                         "double" => "float64",
                         "bool" => "bool",
@@ -1143,6 +1147,7 @@ public class Transpiler
             case Tokens.TokenType.Int:
             case Tokens.TokenType.Float:
             case Tokens.TokenType.Double:
+            case Tokens.TokenType.Long:
             case Tokens.TokenType.Bool:
             case Tokens.TokenType.Char:
             case Tokens.TokenType.Void:

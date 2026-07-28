@@ -15,6 +15,7 @@ public static class Lexer
         { "int", Tokens.TokenType.Int },
         { "float", Tokens.TokenType.Float },
         { "double", Tokens.TokenType.Double },
+        { "long", Tokens.TokenType.Long },
         { "bool", Tokens.TokenType.Bool },
         { "char", Tokens.TokenType.Char },
         { "void", Tokens.TokenType.Void },

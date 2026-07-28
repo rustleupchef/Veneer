@@ -13,7 +13,7 @@ public static class Tokens
 
         // Keywords
         For, While, If, Else, Return,
-        Int, Float, Double, Bool, Char, Void, String,
+        Int, Float, Double, Long, Bool, Char, Void, String,
         Task, Dictionary,
         Function, Class,
         New, This, Base,
