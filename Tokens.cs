@@ -12,8 +12,8 @@ public static class Tokens
         Identifier, IntLiteral, FloatLiteral, CharLiteral, StringLiteral, BoolLiteral,
 
         // Keywords
-        For, While, If, Else, Return,
-        Int, Float, Double, Long, Bool, Char, Void, String,
+        For, While, Break, If, Else, Switch, Case, Return,
+        Int, Float, Double, Long, Bool, Char, Void, String, Default,
         Task, Dictionary,
         Function, Class,
         New, This, Base,

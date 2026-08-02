@@ -1141,8 +1141,11 @@ public class Transpiler
                 return "}\n\t\t";
             case Tokens.TokenType.For:
             case Tokens.TokenType.While:
+            case Tokens.TokenType.Break:
             case Tokens.TokenType.If:
             case Tokens.TokenType.Else:
+            case Tokens.TokenType.Switch:
+            case Tokens.TokenType.Case:
             case Tokens.TokenType.Return:
             case Tokens.TokenType.Int:
             case Tokens.TokenType.Float:
@@ -1152,6 +1155,7 @@ public class Transpiler
             case Tokens.TokenType.Char:
             case Tokens.TokenType.Void:
             case Tokens.TokenType.String:
+            case Tokens.TokenType.Default:
             case Tokens.TokenType.New:
             case Tokens.TokenType.Class:
             case Tokens.TokenType.Public:
