@@ -48,6 +48,7 @@ internal abstract class Program
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
             dllDirectory: Path.GetFullPath(tempDllBuildDir),
             projectName: opts.ExecutableName,
+            runtimeIdentifier: opts.RuntimeIdentifier,
             libraries: csharpLibraries,
             implementPython: implementPython,
             implementJavaScript: implementJavaScript);

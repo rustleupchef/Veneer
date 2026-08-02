@@ -15,4 +15,7 @@ public class Options
     
     [Option('c', "config", Required = false, HelpText = "Configuration Json File for Veneer Build")]
     public string? ConfigFile { get; set; }
+    
+    [Option('r', "runtime-identifier", Required = false, HelpText = "Runtime Identifier for Veneer Build")]
+    public string? RuntimeIdentifier { get; set; }
 }
