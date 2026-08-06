@@ -42,6 +42,51 @@ internal abstract class Program
                 implementPython = true;
         }
 
+        (string content, string name)[] VeneerImports()
+        {
+            string[] imports = configs.TryGetValue("VENEER", out var config) ? config.imports : [];
+            List<(string content, string name)> modules = new();
+
+            foreach (string import in imports)
+            {
+                if (File.Exists(import))
+                {
+                    modules.Add((File.ReadAllText(import), Path.GetFileNameWithoutExtension(import)));
+                    continue;
+                }
+
+                try
+                {
+                    using HttpClient client = new HttpClient();
+                    using HttpResponseMessage response = client.GetAsync(import).GetAwaiter().GetResult();
+                    response.EnsureSuccessStatusCode();
+                    string content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    string name = Path.GetFileNameWithoutExtension(new Uri(import).AbsolutePath);
+                    modules.Add((content, name));
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+            }
+            
+            return modules.ToArray();
+        }
+
+        foreach ((string content, string name) module in VeneerImports())
+        {
+            List<Tokens.Token> tokens = Lexer.LexText(module.content);
+            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs);
+            string result = transpiler.Transpile();
+            string name = Path.GetFileNameWithoutExtension(module.name);
+            File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
+            
+            if (transpiler._usedJavaScript)
+                implementJavaScript = true;
+            if (transpiler._usedPython)
+                implementPython = true;
+        }
+
         string[] csharpLibraries = configs.TryGetValue("csharp", out LanguageConfig.Config? config) ? config.libraries : [];
         string? executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 

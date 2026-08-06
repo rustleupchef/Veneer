@@ -53,7 +53,8 @@ public class Transpiler
         
         CopyLanguageFolders([
             "JAVASCRIPT",
-            "TYPESCRIPT"
+            "TYPESCRIPT",
+            "VENEER"
         ]);
     }
 
