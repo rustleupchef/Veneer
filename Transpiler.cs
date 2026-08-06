@@ -1174,9 +1174,7 @@ public class Transpiler
             case Tokens.TokenType.Dictionary:
             case Tokens.TokenType.Task:
             case Tokens.TokenType.List:
-                return (string.IsNullOrEmpty(token.Value) 
-                    ? token.Value 
-                    : char.ToUpper(token.Value[0]) + token.Value[1..].ToLower()) + " ";
+                return char.ToUpper(token.Value[0]) + token.Value[1..].ToLower() + " ";
             case Tokens.TokenType.Assign:
             case Tokens.TokenType.Plus:
             case Tokens.TokenType.Minus:
