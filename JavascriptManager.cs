@@ -17,7 +17,7 @@ public static class JavascriptManager
     public static string NodeExecutablePath { get; set; } = "node";
 
     /// <summary>Maximum time a single Run call is allowed to take before the process is killed.</summary>
-    public static TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+    public static TimeSpan Timeout { get; set; } = System.Threading.Timeout.InfiniteTimeSpan;
 
     /// <summary>
     /// Event/Action triggered whenever console.log (or stderr) output is received from Node.js.
