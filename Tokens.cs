@@ -14,7 +14,7 @@ public static class Tokens
         // Keywords
         For, While, Break, If, Else, Switch, Case, Return,
         Int, Float, Double, Long, Bool, Char, Void, String, Default,
-        Task, Dictionary,
+        Task, Dictionary, List,
         Function, Class,
         New, This, Base,
         Public, Private, Protected, Internal,

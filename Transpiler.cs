@@ -1172,9 +1172,11 @@ public class Transpiler
             case Tokens.TokenType.Await:
                 return token.Value + " ";
             case Tokens.TokenType.Dictionary:
-                return "Dictionary ";
             case Tokens.TokenType.Task:
-                return "Task ";
+            case Tokens.TokenType.List:
+                return (string.IsNullOrEmpty(token.Value) 
+                    ? token.Value 
+                    : char.ToUpper(token.Value[0]) + token.Value[1..].ToLower()) + " ";
             case Tokens.TokenType.Assign:
             case Tokens.TokenType.Plus:
             case Tokens.TokenType.Minus:

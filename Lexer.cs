@@ -26,6 +26,7 @@ public static class Lexer
         { "default", Tokens.TokenType.Default },
         { "task", Tokens.TokenType.Task },
         { "dictionary", Tokens.TokenType.Dictionary },
+        { "list", Tokens.TokenType.List },
         { "func", Tokens.TokenType.Function },
         { "tooth", Tokens.TokenType.Tooth },
         { "language", Tokens.TokenType.Language },
