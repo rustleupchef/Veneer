@@ -57,6 +57,7 @@ The tooth function acts very different compared to the base function of this lan
 
 Valid Language Strings (Not case-sensitive):
 - CPP, C++ 
+- C
 - Csharp
 - Java
 - Python
