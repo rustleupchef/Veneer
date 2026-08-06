@@ -104,6 +104,8 @@ these attributes must be connected a json object that has attributes "imports" a
 The imports section will be handled in the same syntax of the language; that being, when your write the text for the imports it will be directly pasted in between the standard imports and the foreign function that you created.
 You simply write every line of imports you desire in your code in a list of strings.
 
+- Veneer: In this section you will put a list of veneer module files (It can be web pages like raw file content from github or actual file locations) and it will transpile all of these into there csharp versions.
+
 #### Libraries
 This a list of strings that has unique structure for each individual language to be able to include libraries for the supported languages.
 
@@ -115,6 +117,7 @@ This a list of strings that has unique structure for each individual language to
 - GO: To install libraries for go all you have to do is write the file path for the folder that contains all you have to do is write the paths of the folders containing your go.sum, go.mod, and any other supporting code/package folders.
 - Typescript: To install usable packages set up a package.json using commonjs or a module inside a folder of your choice. Inside the list of string for libraries write down all the folders that contains the files you want to be in the relative path of the node scripts and in this case that would be the folder containing your node_modules and any other relevant files to run typescript with libraries.
 - Rust: To use libraries for rust simply write every line that you would typically add under the dependencies tag of your Cargo.toml as its own list item.
+- Veneer: You just write the all the folders in which the contents of you want added to the working directory.
 
 ### Disclaimers
 There are heavy limitations on the uses of foreign languages and many more that I likely accidentally missed.
