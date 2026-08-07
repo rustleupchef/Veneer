@@ -18,4 +18,7 @@ public class Options
     
     [Option('r', "runtime-identifier", Required = false, HelpText = "Runtime Identifier for Veneer Build")]
     public string? RuntimeIdentifier { get; set; }
+    
+    [Option('v', "verbose", Required = false, HelpText = "Verbose Output for Veneer Build")]
+    public bool Verbose { get; set; }
 }

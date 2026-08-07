@@ -9,6 +9,7 @@ public class Transpiler
 {
     private readonly List<Tokens.Token> _tokens;
     private int _index;
+    private bool _verbose;
     public bool _usedJavaScript = false;
     public bool _usedPython = false;
     private readonly string _build;
@@ -28,11 +29,12 @@ public class Transpiler
         Tokens.TokenType.Async, Tokens.TokenType.Virtual, Tokens.TokenType.Override, Tokens.TokenType.Sealed
     ];
 
-    public Transpiler(List<Tokens.Token> tokens, string build, Dictionary<string, LanguageConfig.Config> configs)
+    public Transpiler(List<Tokens.Token> tokens, string build, Dictionary<string, LanguageConfig.Config> configs, bool verbose)
     {
         _tokens = tokens;
         _build = build;
         _configs = configs;
+        _verbose = verbose;
         
         if (!Directory.Exists(_build))
             throw new DirectoryNotFoundException($"Directory {_build} not found");
@@ -594,7 +596,7 @@ public class Transpiler
         using Process process = Process.Start(info) ?? throw new InvalidOperationException();
         string output = process.StandardOutput.ReadToEnd();
         string error = process.StandardError.ReadToEnd();
-                
+        
         Console.WriteLine(output);
                 
         process.WaitForExit();
@@ -980,7 +982,8 @@ public class Transpiler
         
         
         string foreignFunction = CreateForeignFunction(parameters, language, body, returnType, functionName, isAsync);
-        Console.WriteLine($"Foreign function: {foreignFunction}");
+        if (_verbose)
+            Console.WriteLine($"Foreign function: {foreignFunction}");
 
         List<string> baseToks = _functionModifiers
                 .Select(n => n.Value)

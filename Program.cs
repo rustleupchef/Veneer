@@ -31,7 +31,7 @@ internal abstract class Program
         foreach (string file in files)
         {
             List<Tokens.Token> tokens = Lexer.LexText(File.ReadAllText(file));
-            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs);
+            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs, opts.Verbose);
             string result = transpiler.Transpile();
             string name = Path.GetFileNameWithoutExtension(file);
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
@@ -40,6 +40,9 @@ internal abstract class Program
                 implementJavaScript = true;
             if (transpiler._usedPython)
                 implementPython = true;
+            
+            if (opts.Verbose)
+                Console.WriteLine($"Transpiler for {name}: {result}");
         }
 
         (string content, string name)[] VeneerImports()
@@ -76,7 +79,7 @@ internal abstract class Program
         foreach ((string content, string name) module in VeneerImports())
         {
             List<Tokens.Token> tokens = Lexer.LexText(module.content);
-            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs);
+            Transpiler transpiler = new Transpiler(tokens, tempDllBuildDir, configs, opts.Verbose);
             string result = transpiler.Transpile();
             string name = Path.GetFileNameWithoutExtension(module.name);
             File.WriteAllText(Path.Combine(tempSourceDir, $"{name}.cs"), result);
@@ -85,6 +88,9 @@ internal abstract class Program
                 implementJavaScript = true;
             if (transpiler._usedPython)
                 implementPython = true;
+            
+            if (opts.Verbose)
+                Console.WriteLine($"Transpiler for {name}: {result}");
         }
 
         string[] csharpLibraries = configs.TryGetValue("csharp", out LanguageConfig.Config? config) ? config.libraries : [];
