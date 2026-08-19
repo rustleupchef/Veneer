@@ -142,6 +142,7 @@ You run the compiler with these command line arguments.
     -n, --name => "the output name of the executable; default: main"
     -c, --config => "the is the file directory that contains the config for compiler"
     -r, --runtime-identifier => "the target system that you want veneer to compile down to"
+    -v, --verbose => "Whether or not you want more logging data on veneer"
 ```
 
 To compile the compiler simply run this on the machine you want to use the compiler on, and you will have your single file executable inside your publish directory of your Release folder
