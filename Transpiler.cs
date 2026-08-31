@@ -1207,7 +1207,7 @@ public class Transpiler
             case Tokens.TokenType.Comma:
                 return ", ";
             default:
-                return token.Value;
+                return token.Value + " ";
         }
     }
 }
