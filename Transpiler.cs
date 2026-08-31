@@ -1170,6 +1170,7 @@ public class Transpiler
             case Tokens.TokenType.Default:
             case Tokens.TokenType.New:
             case Tokens.TokenType.Class:
+            case Tokens.TokenType.Struct:
             case Tokens.TokenType.Public:
             case Tokens.TokenType.Private:
             case Tokens.TokenType.Protected:

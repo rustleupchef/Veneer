@@ -15,7 +15,7 @@ public static class Tokens
         For, While, Break, If, Else, Switch, Case, Return,
         Int, Float, Double, Long, Bool, Char, Void, String, Default,
         Task, Dictionary, List,
-        Function, Class,
+        Function, Class, Struct,
         New, This, Base,
         Public, Private, Protected, Internal,
         Static, ReadOnly, Const,

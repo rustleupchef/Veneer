@@ -31,6 +31,7 @@ public static class Lexer
         { "tooth", Tokens.TokenType.Tooth },
         { "language", Tokens.TokenType.Language },
         { "class", Tokens.TokenType.Class },
+        { "struct", Tokens.TokenType.Struct },
         { "new", Tokens.TokenType.New },
         { "this", Tokens.TokenType.This },
         { "base", Tokens.TokenType.Base },
