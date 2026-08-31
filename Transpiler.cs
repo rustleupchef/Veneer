@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Veneer;
 
@@ -125,7 +128,12 @@ public class Transpiler
             sb.AppendLine("}");
         }
 
-        return sb.ToString();
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(sb.ToString());
+        CompilationUnitSyntax root = syntaxTree.GetCompilationUnitRoot();
+        CompilationUnitSyntax formattedRoot = root.NormalizeWhitespace();
+        string code = formattedRoot.ToFullString();
+
+        return code;
     }
 
     private string ParseTopLevelStatement()

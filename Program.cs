@@ -107,7 +107,8 @@ internal abstract class Program
         Directory.Delete(tempSourceDir, true);
         Directory.Delete(tempDllBuildDir, true);
         
-        Console.WriteLine($"Executable path: {executablePath}");
+        if (opts.Verbose)
+            Console.WriteLine($"Executable path: {executablePath}");
     }
 
     static void HandleParserError(IEnumerable<Error> errs)
