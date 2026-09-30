@@ -53,6 +53,13 @@ tooth<void> foo (int bar) language("C") =>
 }
 ```
 
+Teeth functions that are async will only work in c#, and the return type will automatically be handled as a task.
+
+### Lowercase Types
+Veneer has a few types from C# that are represented in lowercase in Veneer:
+- dictionary instead of Dictionary
+- task instead of Task
+
 The tooth function acts very different compared to the base function of this language
 
 Valid Language Strings (Not case-sensitive):
