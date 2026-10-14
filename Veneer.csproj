@@ -17,6 +17,7 @@
       <EmbeddedResource Include="PythonManager.cs" />
       <Compile Remove="JavascriptManager.cs" />
       <EmbeddedResource Include="JavascriptManager.cs" />
+      <EmbeddedResource Include="Transpiler.cs" />
     </ItemGroup>
 	
 </Project>

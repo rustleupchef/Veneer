@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Veneer;
 
@@ -29,6 +31,7 @@ public static class Compiler
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null,
+        bool justInTime = false,
         string[]? libraries = null,
         bool implementPython = true,
         bool implementJavaScript = true)
@@ -88,6 +91,24 @@ public static class Compiler
                         GetManifestResourceStream("Veneer.JavascriptManager.cs") ?? throw new InvalidOperationException()
                     ).ReadToEnd();
                 File.WriteAllText(Path.Join(tempRoot, "JavascriptManager.cs"), javascriptManager);
+            }
+
+            if (justInTime)
+            {
+                string transpilerCode = new StreamReader(
+                    Assembly.
+                        GetExecutingAssembly().
+                        GetManifestResourceStream("Veneer.Transpiler.cs") ?? throw new InvalidOperationException()
+                    ).ReadToEnd();
+                SyntaxTree tree = CSharpSyntaxTree.ParseText(transpilerCode);
+                SyntaxNode root = tree.GetRoot();
+
+                NameSpaceRewriter rewriter = new NameSpaceRewriter("Veneer", "VeneerRuntime");
+                SyntaxNode newRoot = rewriter.Visit(root);
+                
+                transpilerCode = newRoot.ToFullString();
+                
+                File.WriteAllText(Path.Join(tempRoot, "Transpiler.cs"), transpilerCode);
             }
             
             // Target whatever TFM this program itself is running on, so this doesn't

@@ -615,7 +615,7 @@ public class Transpiler
     }
 
     // Generate library file for languages that support DLLImport utility of c#
-    private string? CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
+    public string? CompileFunction(string function, string language, string cWrapper = "", string functionName = "")
     {
         string AddExtension(string file)
         {
