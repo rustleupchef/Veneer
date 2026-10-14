@@ -17,7 +17,13 @@
       <EmbeddedResource Include="PythonManager.cs" />
       <Compile Remove="JavascriptManager.cs" />
       <EmbeddedResource Include="JavascriptManager.cs" />
+
       <EmbeddedResource Include="Transpiler.cs" />
+      <EmbeddedResource Include="Tokens.cs" />
+      <EmbeddedResource Include="Lexer.cs" />
+      <EmbeddedResource Include="LanguageConfig.cs" />
+      <EmbeddedResource Include="Compiler.cs" />
+      <EmbeddedResource Include="NameSpaceRewriter.cs" />
     </ItemGroup>
 	
 </Project>

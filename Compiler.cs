@@ -72,7 +72,7 @@ public static class Compiler
                 File.Copy(file, destination);
             }
             // Add Python manager in the temp directory
-            if (implementPython)
+            if (implementPython || justInTime)
             {
                 string pythonManger = new StreamReader(
                     Assembly.
@@ -83,7 +83,7 @@ public static class Compiler
             }
             
             // Add Javascript manager in the temp directory
-            if (implementJavaScript)
+            if (implementJavaScript || justInTime)
             {
                 string javascriptManager = new StreamReader(
                     Assembly.
@@ -95,20 +95,28 @@ public static class Compiler
 
             if (justInTime)
             {
-                string transpilerCode = new StreamReader(
-                    Assembly.
-                        GetExecutingAssembly().
-                        GetManifestResourceStream("Veneer.Transpiler.cs") ?? throw new InvalidOperationException()
-                    ).ReadToEnd();
-                SyntaxTree tree = CSharpSyntaxTree.ParseText(transpilerCode);
-                SyntaxNode root = tree.GetRoot();
+                void InsertInternalScript(string[] names)
+                {
+                    foreach (string name in names)
+                    {
+                        string code = new StreamReader(
+                                Assembly.
+                                    GetExecutingAssembly().
+                                    GetManifestResourceStream($"Veneer.{name}.cs") ?? throw new InvalidOperationException()
+                            ).ReadToEnd();
+                        
+                        SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
+                        SyntaxNode root = tree.GetRoot();
 
-                NameSpaceRewriter rewriter = new NameSpaceRewriter("Veneer", "VeneerRuntime");
-                SyntaxNode newRoot = rewriter.Visit(root);
-                
-                transpilerCode = newRoot.ToFullString();
-                
-                File.WriteAllText(Path.Join(tempRoot, "Transpiler.cs"), transpilerCode);
+                        NameSpaceRewriter rewriter = new NameSpaceRewriter("Veneer", "VeneerRuntime");
+                        SyntaxNode newRoot = rewriter.Visit(root);
+
+                        code = newRoot.ToFullString();
+                        File.WriteAllText(Path.Join(tempRoot, $"{name}.cs"), code);
+                    }
+                }
+
+                InsertInternalScript(["Transpiler", "LanguageConfig", "Tokens", "Lexer", "NameSpaceRewriter", "Compiler"]);
             }
             
             // Target whatever TFM this program itself is running on, so this doesn't
