@@ -136,6 +136,9 @@ public static class Compiler
             string codeAnalysis = justInTime
                 ? "<PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"5.3.0\" />"
                 : "";
+            string justInTimeConstant = justInTime
+                ? "<DefineConstants>$(DefineConstants);JUST_IN_TIME</DefineConstants>"
+                : "";
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
@@ -146,6 +149,7 @@ public static class Compiler
                         <AssemblyName>{projectName}</AssemblyName>
                         <ImplicitUsings>enable</ImplicitUsings>
                         <InvariantGlobalization>true</InvariantGlobalization>{extraProps}
+                        {justInTimeConstant}
                     </PropertyGroup>
                     <ItemGroup>
                         {pythonNet}
