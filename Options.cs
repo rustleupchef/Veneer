@@ -21,4 +21,7 @@ public class Options
     
     [Option('v', "verbose", Required = false, HelpText = "Verbose Output for Veneer Build")]
     public bool Verbose { get; set; }
+    
+    [Option('j', "just-in-time", Required = false, HelpText = "Allow runtime compilation for teeth")]
+    public bool JustInTime { get; set; }
 }
