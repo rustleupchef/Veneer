@@ -16,8 +16,11 @@ internal abstract class Program
         if (Directory.Exists(opts.BuildDirectory))
             Directory.Delete(opts.BuildDirectory, true);
         Directory.CreateDirectory(opts.BuildDirectory ?? throw new InvalidOperationException());
-        
-        string[] files = Directory.GetFiles(opts.SourceDirectory ?? throw new InvalidOperationException(), "*.v");
+
+        string[] validExtensions = [".v", ".veneer"];
+        string[] files = Directory.GetFiles(opts.SourceDirectory ?? throw new InvalidOperationException())
+            .Where(file => validExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+            .ToArray();
         string tempSourceDir = Path.Combine(Path.GetTempPath(), "veneer-code-" + Guid.NewGuid());
         string tempDllBuildDir = Path.Combine(Path.GetTempPath(), "veneer-build-foreign-code-" + Guid.NewGuid());
         Directory.CreateDirectory(tempSourceDir);
