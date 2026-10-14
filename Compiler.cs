@@ -130,7 +130,12 @@ public static class Compiler
                 : "";
 
             projectName ??= "main";
-            string pythonNet = implementPython ? "<PackageReference Include=\"pythonnet\" Version=\"3.1.0\"/>" : "";
+            string pythonNet = implementPython || justInTime
+                ? "<PackageReference Include=\"pythonnet\" Version=\"3.1.0\"/>" 
+                : "";
+            string codeAnalysis = justInTime
+                ? "<PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"5.3.0\" />"
+                : "";
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
@@ -144,6 +149,7 @@ public static class Compiler
                     </PropertyGroup>
                     <ItemGroup>
                         {pythonNet}
+                        {codeAnalysis}
                         {string.Join("\n\t\t\t", libraries)}
                     </ItemGroup>
                     <ItemGroup>
