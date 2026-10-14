@@ -604,8 +604,12 @@ public class Transpiler
         using Process process = Process.Start(info) ?? throw new InvalidOperationException();
         string output = process.StandardOutput.ReadToEnd();
         string error = process.StandardError.ReadToEnd();
-        
-        Console.WriteLine(output);
+
+        if (_verbose)
+        {
+            Console.WriteLine($"{info.FileName} {info.Arguments}");
+            Console.WriteLine(output);
+        }
                 
         process.WaitForExit();
                 
@@ -688,9 +692,7 @@ public class Transpiler
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
-
-                Console.WriteLine($"{compiler} {arguments}");
-
+                
                 RunProcess(cStartInfo);
                 
                 //File.Delete(cFile);
