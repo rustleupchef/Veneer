@@ -695,8 +695,8 @@ public class Transpiler
                 
                 RunProcess(cStartInfo);
                 
-                //File.Delete(cFile);
-                //File.Delete(Path.Join(_build, $"{name}.o"));
+                File.Delete(cFile);
+                File.Delete(Path.Join(_build, $"{name}.o"));
                 foreach (string cHeaderFile in headerFiles)
                     File.Delete(cHeaderFile);
                 
