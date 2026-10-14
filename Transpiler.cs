@@ -626,7 +626,7 @@ public class Transpiler
                 return $"{file}.so";
             
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                return $"${file}.dylib";
+                return $"{file}.dylib";
             
             return file;
         }
@@ -675,7 +675,8 @@ public class Transpiler
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     arguments = $"-shared -fPIC -o {cOutputFile} {cFile}";
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    arguments = $"-dynamiclib -o {cOutputFile} {cFile}";
+                    arguments = $"-dynamiclib -fPIC -O3 {cFile} -o {cOutputFile}";
+                
 
                 string compiler = language == "C" ? "gcc" : "g++";
                 ProcessStartInfo cStartInfo = new ProcessStartInfo
@@ -688,10 +689,12 @@ public class Transpiler
                     CreateNoWindow = true
                 };
 
+                Console.WriteLine($"{compiler} {arguments}");
+
                 RunProcess(cStartInfo);
                 
-                File.Delete(cFile);
-                File.Delete(Path.Join(_build, $"{name}.o"));
+                //File.Delete(cFile);
+                //File.Delete(Path.Join(_build, $"{name}.o"));
                 foreach (string cHeaderFile in headerFiles)
                     File.Delete(cHeaderFile);
                 
