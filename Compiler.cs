@@ -32,6 +32,7 @@ public static class Compiler
         bool singleFile = true,
         string? runtimeIdentifier = null,
         bool justInTime = false,
+        string? config = null,
         string[]? libraries = null,
         bool implementPython = true,
         bool implementJavaScript = true)
@@ -136,9 +137,22 @@ public static class Compiler
             string codeAnalysis = justInTime
                 ? "<PackageReference Include=\"Microsoft.CodeAnalysis.CSharp\" Version=\"5.3.0\" />"
                 : "";
-            string justInTimeConstant = justInTime
-                ? "<DefineConstants>$(DefineConstants);JUST_IN_TIME</DefineConstants>"
+
+            string embeddedConfig = !string.IsNullOrEmpty(config) 
+                ? $"<EmbeddedResource Include=\"{config}\" LogicalName=\"Config\" />" 
                 : "";
+            
+            string justInTimeConstant = justInTime
+                ? "JUST_IN_TIME"
+                : "";
+            string configConstant = justInTime && !string.IsNullOrEmpty(config)
+                ? "CONFIG"
+                : $"";
+            string compilerConstants = 
+                $"<DefineConstants>$(DefineConstants);" +
+                $"{string.Join(';', justInTimeConstant, configConstant)}" +
+                $"</DefineConstants>";
+            
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
             File.WriteAllText(csprojPath, $@"
@@ -149,7 +163,7 @@ public static class Compiler
                         <AssemblyName>{projectName}</AssemblyName>
                         <ImplicitUsings>enable</ImplicitUsings>
                         <InvariantGlobalization>true</InvariantGlobalization>{extraProps}
-                        {justInTimeConstant}
+                        {compilerConstants}
                     </PropertyGroup>
                     <ItemGroup>
                         {pythonNet}
@@ -163,6 +177,7 @@ public static class Compiler
                         
                         <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
                       </Content>
+                      {embeddedConfig}
                     </ItemGroup>
                 </Project>
             ");
