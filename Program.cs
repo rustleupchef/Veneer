@@ -104,6 +104,7 @@ internal abstract class Program
             projectName: opts.ExecutableName,
             runtimeIdentifier: opts.RuntimeIdentifier,
             justInTime: opts.JustInTime,
+            unsafeContext: opts.Unsafe,
             config: !string.IsNullOrEmpty(opts.ConfigFile) ? Path.GetFullPath(opts.ConfigFile) : null,
             libraries: csharpLibraries,
             implementPython: implementPython,

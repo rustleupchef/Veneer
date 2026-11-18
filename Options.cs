@@ -24,4 +24,7 @@ public class Options
     
     [Option('j', "just-in-time", Required = false, HelpText = "Allow runtime compilation for teeth")]
     public bool JustInTime { get; set; }
+    
+    [Option('u', "unsafe", Required = false, HelpText = "Run Veneer in unsafe context")]
+    public bool Unsafe { get; set; }
 }

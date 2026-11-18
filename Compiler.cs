@@ -32,6 +32,7 @@ public static class Compiler
         bool singleFile = true,
         string? runtimeIdentifier = null,
         bool justInTime = false,
+        bool unsafeContext = false,
         string? config = null,
         string[]? libraries = null,
         bool implementPython = true,
@@ -152,6 +153,8 @@ public static class Compiler
                 $"<DefineConstants>$(DefineConstants);" +
                 $"{string.Join(';', justInTimeConstant, configConstant)}" +
                 $"</DefineConstants>";
+
+            string unsafeConfiguration = unsafeContext ? "<AllowUnsafeBlocks>true</AllowUnsafeBlocks>" : "";
             
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
@@ -164,6 +167,7 @@ public static class Compiler
                         <ImplicitUsings>enable</ImplicitUsings>
                         <InvariantGlobalization>true</InvariantGlobalization>{extraProps}
                         {compilerConstants}
+                        {unsafeConfiguration}
                     </PropertyGroup>
                     <ItemGroup>
                         {pythonNet}
