@@ -550,7 +550,8 @@ public class Transpiler
                 return $"export default function {functionName}({formattedArgs}): {retTypeStr} {{\n{body}\n}}";
                 
             case "CSHARP":
-                retTypeStr = isAsync ? retTypeStr == "void" ? "Task" : $"Task<{retTypeStr}>" : retTypeStr;
+                retTypeStr = isAsync ? returnType == "void" ? "Task" : $"Task<{returnType}>" : returnType;
+                formattedArgs = string.Join("", Lexer.LexText(parameters).Select(EmitTokenFormatting).ToArray());
                 return $"{retTypeStr} {functionName}({formattedArgs}) {{\n{body}\n}}";
                 
             case "JAVA":
