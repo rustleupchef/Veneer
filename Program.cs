@@ -103,6 +103,7 @@ internal abstract class Program
             dllDirectory: Path.GetFullPath(tempDllBuildDir),
             projectName: opts.ExecutableName,
             runtimeIdentifier: opts.RuntimeIdentifier,
+            verbose: opts.Verbose,
             justInTime: opts.JustInTime,
             unsafeContext: opts.Unsafe,
             config: !string.IsNullOrEmpty(opts.ConfigFile) ? Path.GetFullPath(opts.ConfigFile) : null,

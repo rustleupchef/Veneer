@@ -31,6 +31,7 @@ public static class Compiler
         bool selfContained = true,
         bool singleFile = true,
         string? runtimeIdentifier = null,
+        bool verbose = false,
         bool justInTime = false,
         bool unsafeContext = false,
         string? config = null,
@@ -158,7 +159,7 @@ public static class Compiler
             
             libraries ??= [];
             string csprojPath = Path.Combine(tempRoot, projectName + ".csproj");
-            File.WriteAllText(csprojPath, $@"
+            string csprojContent = $@"
                 <Project Sdk=""Microsoft.NET.Sdk"">
                     <PropertyGroup>
                         <OutputType>Exe</OutputType>
@@ -184,7 +185,10 @@ public static class Compiler
                       {embeddedConfig}
                     </ItemGroup>
                 </Project>
-            ");
+            ";
+            if (verbose)
+                Console.WriteLine(csprojContent);
+            File.WriteAllText(csprojPath, csprojContent);
 
             Directory.CreateDirectory(dllDirectory);
 
