@@ -96,7 +96,7 @@ internal abstract class Program
                 Console.WriteLine($"Transpiler for {name}: {result}");
         }
 
-        string[] csharpLibraries = configs.TryGetValue("csharp", out LanguageConfig.Config? config) ? config.libraries : [];
+        string[] csharpLibraries = configs.TryGetValue("CSHARP", out LanguageConfig.Config? config) ? config.libraries : [];
         string? executablePath = Compiler.CompileFolder(
             sourceFolder: tempSourceDir, 
             buildDirectory: Path.GetFullPath(opts.BuildDirectory), 
